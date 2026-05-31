@@ -6,495 +6,55 @@
 <title>照明器具 自動OCR照会記号チェッカー</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#050505;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-header{height:48px;display:flex;align-items:center;justify-content:center;background:#090909;font-weight:900;font-size:16px;border-bottom:1px solid #222;position:sticky;top:0;z-index:5}
-.wrap{padding:10px;max-width:720px;margin:auto}
-.cameraBox{position:relative;border:2px solid #19e071;border-radius:16px;overflow:hidden;background:#000;margin-bottom:10px}
-video{display:block;width:100%;height:34vh;object-fit:cover;background:#000}
-.crossH{position:absolute;left:0;right:0;top:50%;height:1px;background:#7fff90;box-shadow:0 0 8px #7fff90}
-.crossV{position:absolute;top:0;bottom:0;left:50%;width:1px;background:#7fff90;box-shadow:0 0 8px #7fff90}
-.corner{position:absolute;width:34px;height:34px;border-color:#fff}
-.c1{left:18px;top:18px;border-left:4px solid;border-top:4px solid}
-.c2{right:18px;top:18px;border-right:4px solid;border-top:4px solid}
-.c3{left:18px;bottom:18px;border-left:4px solid;border-bottom:4px solid}
-.c4{right:18px;bottom:18px;border-right:4px solid;border-bottom:4px solid}
-.guide{position:absolute;left:10%;right:10%;bottom:14px;background:#000a;border-radius:999px;text-align:center;padding:7px;font-weight:800}
-.result{display:grid;grid-template-columns:1fr 95px;gap:8px;background:linear-gradient(#0d1824,#07111b);border:2px solid #24394f;border-radius:16px;padding:14px;margin-bottom:10px}
-.state{color:#35ff91;font-weight:900;font-size:18px}
-.symbol{font-size:62px;font-weight:1000;line-height:1;word-break:break-all}
-.meta{font-size:17px;line-height:1.5}
-.ruleBox{border:2px solid currentColor;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900}
-.ruleKey{font-size:38px}.ruleName{font-size:14px}
-.grid3{display:grid;grid-template-columns:1fr 1.6fr .8fr;gap:8px;margin:8px 0}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
-.foot{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
-button,label.fileLabel{border:0;border-radius:12px;padding:14px 8px;color:#fff;font-size:17px;font-weight:900;text-align:center;display:block}
-.blue{background:#0967dc}.green{background:#079b37}.red{background:#ad1515}.black{background:#111;border:1px solid #333}
-.status{display:flex;gap:8px;align-items:center;color:#ccc;margin:6px 0}.dot{width:13px;height:13px;border-radius:50%;background:#1ed760}
-.checkTitle{display:flex;align-items:center;justify-content:space-between;background:#101010;border:1px solid #333;border-radius:12px;padding:10px;margin-top:10px}
-.checkTitle h3{margin:0;font-size:20px}
-.dateBlock{border:1px solid #1e4268;border-radius:12px;overflow:hidden;margin-top:8px;background:#080808}
-.dateTitle{display:flex;justify-content:space-between;background:#07325c;padding:10px 12px;font-size:18px;font-weight:900}
-.item{display:grid;grid-template-columns:1.15fr 1fr 1.75fr .55fr;align-items:center;border-top:1px solid #333;min-height:58px}
-.item>div{padding:7px;border-left:1px solid #222}.item>div:first-child{border-left:0}
-.itemSymbol{font-size:30px;font-weight:1000}.itemRule{font-size:18px;font-weight:900}
-.qtyGrid{display:grid;grid-template-columns:38px 38px 42px 38px 38px;gap:3px;align-items:center;justify-content:center}
-.qbtn{padding:7px 0;border-radius:7px;background:#111;border:1px solid #333;font-size:15px}
-.minus{color:#ff3333;border-color:#8a2222}.plus{color:#248dff;border-color:#1e5a9f}
-.qtyNum{font-size:24px;font-weight:900;text-align:center}
-.lockBtn{font-size:22px;padding:8px;background:#111;border:1px solid #555}.locked{color:#ffd400;border-color:#ffd400}
-input[type=file]{display:none}
-.tiger{background:repeating-linear-gradient(135deg,#ffd400 0 12px,#000 12px 24px);color:#000;text-shadow:0 1px 0 #fff;border-radius:8px;padding:5px 6px;font-weight:1000;display:inline-block}
-.small{font-size:13px;color:#ccc;margin-top:6px}
-.raw{white-space:pre-wrap;background:#080808;border-radius:10px;padding:8px;font-size:12px;color:#bbb;max-height:85px;overflow:auto;margin-top:8px}
-canvas{display:none}
+*{box-sizing:border-box}body{margin:0;background:#050505;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}header{height:48px;display:flex;align-items:center;justify-content:center;background:#090909;font-weight:900;font-size:16px;border-bottom:1px solid #222;position:sticky;top:0;z-index:5}.wrap{padding:10px;max-width:720px;margin:auto}.cameraBox{position:relative;border:2px solid #19e071;border-radius:16px;overflow:hidden;background:#000;margin-bottom:10px}video{display:block;width:100%;height:34vh;object-fit:cover;background:#000}.crossH{position:absolute;left:0;right:0;top:50%;height:1px;background:#7fff90;box-shadow:0 0 8px #7fff90}.crossV{position:absolute;top:0;bottom:0;left:50%;width:1px;background:#7fff90;box-shadow:0 0 8px #7fff90}.corner{position:absolute;width:34px;height:34px;border-color:#fff}.c1{left:18px;top:18px;border-left:4px solid;border-top:4px solid}.c2{right:18px;top:18px;border-right:4px solid;border-top:4px solid}.c3{left:18px;bottom:18px;border-left:4px solid;border-bottom:4px solid}.c4{right:18px;bottom:18px;border-right:4px solid;border-bottom:4px solid}.guide{position:absolute;left:10%;right:10%;bottom:14px;background:#000a;border-radius:999px;text-align:center;padding:7px;font-weight:800}.result{display:grid;grid-template-columns:1fr 95px;gap:8px;background:linear-gradient(#0d1824,#07111b);border:2px solid #24394f;border-radius:16px;padding:14px;margin-bottom:10px}.state{color:#35ff91;font-weight:900;font-size:18px}.symbol{font-size:54px;font-weight:1000;line-height:1;word-break:break-all}.modelNow{font-size:25px;font-weight:1000;word-break:break-all;margin:6px 0;color:#fff}.meta{font-size:16px;line-height:1.5}.ruleBox{border:2px solid currentColor;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900}.ruleKey{font-size:38px}.ruleName{font-size:14px}.grid3{display:grid;grid-template-columns:1fr 1.6fr .8fr;gap:8px;margin:8px 0}.grid2,.foot{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}button,label.fileLabel{border:0;border-radius:12px;padding:14px 8px;color:#fff;font-size:17px;font-weight:900;text-align:center;display:block}.blue{background:#0967dc}.green{background:#079b37}.red{background:#ad1515}.black{background:#111;border:1px solid #333}.status{display:flex;gap:8px;align-items:center;color:#ccc;margin:6px 0}.dot{width:13px;height:13px;border-radius:50%;background:#1ed760}.panel{display:flex;align-items:center;justify-content:space-between;background:#101010;border:1px solid #333;border-radius:12px;padding:10px;margin-top:10px}.panel h3{margin:0;font-size:20px}.dateBlock{border:1px solid #1e4268;border-radius:12px;overflow:hidden;margin-top:8px;background:#080808}.dateTitle{display:flex;justify-content:space-between;background:#07325c;padding:10px 12px;font-size:18px;font-weight:900}.item{display:grid;grid-template-columns:1.15fr 1fr 1.75fr .55fr;align-items:center;border-top:1px solid #333;min-height:58px}.item>div{padding:7px;border-left:1px solid #222}.item>div:first-child{border-left:0}.itemSymbol{font-size:30px;font-weight:1000}.itemRule{font-size:18px;font-weight:900}.qtyGrid{display:grid;grid-template-columns:38px 38px 42px 38px 38px;gap:3px;align-items:center;justify-content:center}.qbtn{padding:7px 0;border-radius:7px;background:#111;border:1px solid #333;font-size:15px}.minus{color:#ff3333;border-color:#8a2222}.plus{color:#248dff;border-color:#1e5a9f}.qtyNum{font-size:24px;font-weight:900;text-align:center}.lockBtn{font-size:22px;padding:8px;background:#111;border:1px solid #555}.locked{color:#ffd400;border-color:#ffd400}input[type=file]{display:none}.tiger{background:repeating-linear-gradient(135deg,#ffd400 0 12px,#000 12px 24px);color:#000;text-shadow:0 1px 0 #fff;border-radius:8px;padding:5px 6px;font-weight:1000;display:inline-block}.small{font-size:13px;color:#ccc;margin-top:6px}.raw{white-space:pre-wrap;background:#080808;border-radius:10px;padding:8px;font-size:12px;color:#bbb;max-height:70px;overflow:auto;margin-top:8px}.dataList{border:1px solid #333;border-radius:12px;margin-top:8px;overflow:hidden;background:#080808;max-height:280px;overflow-y:auto}.dataRow{display:grid;grid-template-columns:90px 1fr;gap:8px;padding:8px 10px;border-top:1px solid #222;align-items:center}.dataRow:first-child{border-top:0}.dataSym{font-size:21px;font-weight:1000}.dataModel{font-size:17px;font-weight:800;color:#eee;word-break:break-all}canvas{display:none}
 </style>
 </head>
 <body>
 <header>照明器具 自動OCR照会記号チェッカー</header>
 <div class="wrap">
-<section class="cameraBox">
-  <video id="video" playsinline muted></video>
-  <div class="crossH"></div><div class="crossV"></div>
-  <div class="corner c1"></div><div class="corner c2"></div><div class="corner c3"></div><div class="corner c4"></div>
-  <div class="guide">型番を十字の中心に合わせてください</div>
-</section>
-
-<section class="result" id="resultBox">
-  <div>
-    <div class="state">待機中</div>
-    <div class="symbol" style="color:white">---</div>
-    <div class="meta">型番を読ませてください</div>
-  </div>
-  <div class="ruleBox" style="color:white"><div class="ruleKey">白</div><div class="ruleName">その他</div></div>
-</section>
-
-<div class="grid3">
-  <button id="btnStart" class="blue">📷 カメラ起動<br><small>自動読取</small></button>
-  <button id="btnAdd" class="green">＋ チェックリストに追加<br><small>数量を+1</small></button>
-  <button id="btnLight" class="black">💡<br>ライト</button>
-</div>
-<div class="grid2">
-  <button id="btnRead" class="black">1回だけ読取</button>
-  <button id="btnStop" class="red">■ 停止</button>
-</div>
-
+<section class="cameraBox"><video id="video" playsinline muted></video><div class="crossH"></div><div class="crossV"></div><div class="corner c1"></div><div class="corner c2"></div><div class="corner c3"></div><div class="corner c4"></div><div class="guide">型番を十字の中心に合わせてください</div></section>
+<section class="result" id="resultBox"><div><div class="state">待機中</div><div class="modelNow">---</div><div class="meta">ここに読み取った型番を表示します</div></div><div class="ruleBox" style="color:white"><div class="ruleKey">白</div><div class="ruleName">その他</div></div></section>
+<div class="grid3"><button id="btnStart" class="blue">📷 カメラ起動<br><small>自動読取</small></button><button id="btnAdd" class="green">＋ チェックリストに追加<br><small>数量を+1</small></button><button id="btnLight" class="black">💡<br>ライト</button></div>
+<div class="grid2"><button id="btnRead" class="black">1回だけ読取</button><button id="btnStop" class="red">■ 停止</button></div>
 <div class="status"><span class="dot"></span><span id="status">待機中</span></div>
-
-<section class="checkTitle">
-  <h3>チェックリスト</h3>
-</section>
-<div id="checkList"></div>
-
-<div class="foot">
-  <label for="csvInput" class="fileLabel black">📁 CSV読込</label>
-  <button id="btnExport" class="blue">⬇ CSV書き出し</button>
-  <input id="csvInput" type="file" accept=".csv,text/csv">
-</div>
-<div class="small" id="csvInfo">初期データ：33件</div>
-<div class="raw" id="rawBox">読取文字：未読取</div>
-</div>
-<canvas id="work"></canvas>
-
+<section class="panel"><h3>チェックリスト</h3></section><div id="checkList"></div>
+<div class="foot"><label for="csvInput" class="fileLabel black">📁 CSV読込</label><button id="btnExport" class="blue">⬇ CSV書き出し</button><input id="csvInput" type="file" accept=".csv,text/csv"></div>
+<div class="small" id="csvInfo">初期データ：33件</div><div class="raw" id="rawBox">読取文字：未読取</div>
+<section class="panel"><h3>読み込んだCSVデータ</h3><span id="dataCount">33件</span></section><div id="dataList" class="dataList"></div>
+</div><canvas id="work"></canvas>
 <script>
 const DATA_INIT = [{"model": "NNFB84665", "symbol": "E1a", "type": "", "note": ""}, {"model": "NNFB84695", "symbol": "E1a黒", "type": "", "note": ""}, {"model": "NNFB87609", "symbol": "E2a", "type": "", "note": ""}, {"model": "NNFB87649", "symbol": "E2a黒", "type": "", "note": ""}, {"model": "NNFB84005", "symbol": "E3a", "type": "", "note": ""}, {"model": "NNFB84045", "symbol": "E3a黒", "type": "", "note": ""}, {"model": "NNFB84715", "symbol": "E4a", "type": "", "note": ""}, {"model": "NNLG01509", "symbol": "E5a", "type": "", "note": ""}, {"model": "NNFB84105", "symbol": "E6a", "type": "", "note": ""}, {"model": "NNFB87009", "symbol": "E7a", "type": "", "note": ""}, {"model": "NNFB87049", "symbol": "E7a黒", "type": "", "note": ""}, {"model": "NNFB87109", "symbol": "E8a", "type": "", "note": ""}, {"model": "NNFB87919", "symbol": "E9a", "type": "", "note": ""}, {"model": "FA40356C LE1", "symbol": "X1L", "type": "", "note": ""}, {"model": "FA40352C LE1", "symbol": "X2", "type": "", "note": ""}, {"model": "FA40316C LE1", "symbol": "X3L", "type": "", "note": ""}, {"model": "FA40312C LE1", "symbol": "X4", "type": "", "note": ""}, {"model": "FW42317C", "symbol": "X5Lu", "type": "", "note": ""}, {"model": "FW42317C", "symbol": "X6u", "type": "", "note": ""}, {"model": "FW42317C LE1", "symbol": "X7u", "type": "", "note": ""}, {"model": "FW42337C LE1", "symbol": "X8u", "type": "", "note": ""}, {"model": "FW40315 LE1", "symbol": "X9L", "type": "", "note": ""}, {"model": "FW42327C LE1", "symbol": "X10u", "type": "", "note": ""}, {"model": "FA40356C LE1", "symbol": "Y1L", "type": "", "note": ""}, {"model": "FA40366C LE1", "symbol": "Y2L", "type": "", "note": ""}, {"model": "FA40352C LE1", "symbol": "Y3", "type": "", "note": ""}, {"model": "FA40362C LE1", "symbol": "Y4", "type": "", "note": ""}, {"model": "FA40312C LE1", "symbol": "Y5", "type": "", "note": ""}, {"model": "FA40322C LE1", "symbol": "Y6", "type": "", "note": ""}, {"model": "FW42317C LE1", "symbol": "Y7u", "type": "", "note": ""}, {"model": "FW42337C LE1", "symbol": "Y8u", "type": "", "note": ""}, {"model": "FA01520J", "symbol": "Y9", "type": "", "note": ""}, {"model": "FSK90910K", "symbol": "自己点検リモコン", "type": "", "note": ""}];
-let data = DATA_INIT.slice();
-
-let rules = [
-  {key:"a",name:"一般照明",color:"#ff2020"},
-  {key:"b",name:"非常照明",color:"#1d7cff"},
-  {key:"c",name:"誘導灯",color:"#ffd31a"},
-  {key:"d",name:"ダウンライト",color:"#ff8200"},
-  {key:"e",name:"スポットライト",color:"#42c83f"},
-  {key:"f",name:"ベースライト",color:"#9747ff"},
-  {key:"k",name:"防水",color:"#43cde6"},
-  {key:"l",name:"ロング",color:"#7a3f18"},
-  {key:"t",name:"その他",color:"#ffffff"}
-];
-
-let checklist = [];
-let current = null;
-let stream = null;
-let worker = null;
-let timer = null;
-let busy = false;
-let torchOn = false;
-let isStopped = false;
-
-const el = (id) => document.getElementById(id);
-
-window.addEventListener("DOMContentLoaded", () => {
-  el("btnStart").addEventListener("click", startAuto);
-  el("btnAdd").addEventListener("click", addCurrent);
-  el("btnLight").addEventListener("click", toggleLight);
-  el("btnRead").addEventListener("click", readOnce);
-  el("btnStop").addEventListener("click", stopAll);
-  el("btnExport").addEventListener("click", exportCsv);
-  el("csvInput").addEventListener("change", loadCsv);
-  renderChecklist();
-});
-
-function setStatus(s) { el("status").textContent = s; }
-
-function normalize(s) {
-  return (s || "").toUpperCase()
-    .replace(/[ＯO]/g,"0")
-    .replace(/[ＩIＬ]/g,"1")
-    .replace(/[Ｓ]/g,"5")
-    .replace(/[Ｂ]/g,"8")
-    .replace(/[　\s_.,:;|/\\()[\]{}]+/g,"")
-    .replace(/[^A-Z0-9\-]/g,"")
-    .trim();
-}
-
-function looksLikeModel(s) {
-  const x = normalize(s);
-  if(x.length < 5 || x.length > 24) return false;
-  return /^(NNFB|NNLG|FA|FW|FSK|FK|LGB|XL|XND|NW|NDN)[A-Z0-9\-]{3,}/.test(x);
-}
-
-function extractModelCandidates(text) {
-  const joined = normalize(text);
-  let arr = [];
-  const patterns = [
-    /NNFB\d{5}[A-Z]*/g,
-    /NNLG\d{5}[A-Z]*/g,
-    /FSK\d{5}[A-Z]*/g,
-    /FA\d{5}[A-Z]*/g,
-    /FW\d{5}[A-Z]*/g,
-    /LGB\d{3,6}[A-Z]*/g,
-    /XND\d{3,6}[A-Z]*/g
-  ];
-  for(const p of patterns) {
-    const m = joined.match(p);
-    if(m) arr.push(...m);
-  }
-  const words = joined.match(/[A-Z]{2,}[A-Z0-9\-]{3,}/g) || [];
-  arr.push(...words.filter(looksLikeModel));
-  return [...new Set(arr)];
-}
-
-function lastAlpha(s) {
-  let m = String(s || "").toLowerCase().match(/[a-z](?!.*[a-z])/);
-  return m ? m[0] : "t";
-}
-
-function ruleFor(symbol) {
-  let k = lastAlpha(symbol);
-  return rules.find(r => r.key === k) || rules.find(r => r.key === "t");
-}
-
-function similarity(a,b) {
-  a = normalize(a); b = normalize(b);
-  let m=a.length,l=b.length;
-  if(!m || !l) return 0;
-  let d = Array.from({length:m+1},()=>Array(l+1).fill(0));
-  for(let i=0;i<=m;i++) d[i][0]=i;
-  for(let j=0;j<=l;j++) d[0][j]=j;
-  for(let i=1;i<=m;i++) {
-    for(let j=1;j<=l;j++) {
-      let c = a[i-1]===b[j-1] ? 0 : 1;
-      d[i][j] = Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+c);
-    }
-  }
-  return 1 - d[m][l] / Math.max(m,l);
-}
-
-function matchModel(text) {
-  let candidates = extractModelCandidates(text);
-  let joined = normalize(text);
-
-  for (const r of data) {
-    let m = normalize(r.model);
-    if(joined.includes(m)) return {hit:r,cand:r.model,score:1};
-  }
-
-  let best = {hit:null,cand:candidates[0] || "",score:0};
-  for (const r of data) {
-    let model = normalize(r.model);
-    for (const c of candidates) {
-      let s = similarity(c, model);
-      if(s > best.score) best = {hit:r,cand:c,score:s};
-    }
-  }
-
-  if(best.score >= 0.72) return best;
-
-  // 型番らしい候補だけ未登録表示。それ以外の長文OCRは無視。
-  if(candidates.length) return {hit:null,cand:candidates[0],score:best.score};
-  return {hit:null,cand:"",score:0};
-}
-
-async function ensureWorker() {
-  if(worker) return worker;
-  setStatus("OCR準備中...");
-  worker = await Tesseract.createWorker("eng", 1);
-  await worker.setParameters({
-    tessedit_char_whitelist:"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789- ",
-    tessedit_pageseg_mode:"6"
-  });
-  setStatus("OCR準備完了");
-  return worker;
-}
-
-async function startAuto() {
-  try {
-    isStopped = false;
-    await startCamera();
-    if(timer) clearInterval(timer);
-    timer = setInterval(readOnce, 1200);
-    await readOnce();
-  } catch(e) {
-    setStatus("カメラエラー：" + e.message);
-    alert("カメラ起動失敗：" + e.message);
-  }
-}
-
-async function startCamera() {
-  if(stream) return;
-  stream = await navigator.mediaDevices.getUserMedia({
-    video: {
-      facingMode: {ideal:"environment"},
-      width: {ideal:1920},
-      height: {ideal:1080}
-    },
-    audio:false
-  });
-  const video = el("video");
-  video.srcObject = stream;
-  await video.play();
-  await ensureWorker();
-  setStatus("自動読取中");
-}
-
-function stopAll() {
-  isStopped = true;
-  if(timer) {
-    clearInterval(timer);
-    timer = null;
-  }
-  if(stream) {
-    stream.getTracks().forEach(t => t.stop());
-    stream = null;
-  }
-  el("video").srcObject = null;
-  busy = false;
-  setStatus("停止しました");
-}
-
-async function toggleLight() {
-  try {
-    if(!stream) {
-      alert("先にカメラ起動してください");
-      return;
-    }
-    const track = stream.getVideoTracks()[0];
-    const cap = track.getCapabilities ? track.getCapabilities() : null;
-    if(!cap || !cap.torch) {
-      alert("このスマホ/ブラウザはライト制御に対応していません");
-      return;
-    }
-    torchOn = !torchOn;
-    await track.applyConstraints({advanced:[{torch: torchOn}]});
-    setStatus(torchOn ? "ライトON" : "ライトOFF");
-  } catch(e) {
-    alert("ライト切替エラー：" + e.message);
-  }
-}
-
-function crop() {
-  const video = el("video");
-  if(!video.videoWidth) return null;
-  const c = el("work");
-  const sw = video.videoWidth * 0.92;
-  const sh = video.videoHeight * 0.45;
-  const sx = video.videoWidth * 0.04;
-  const sy = video.videoHeight * 0.28;
-  const scale = 1100 / sw;
-  c.width = 1100;
-  c.height = Math.max(260, Math.floor(sh * scale));
-  const ctx = c.getContext("2d", {willReadFrequently:true});
-  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
-  return c;
-}
-
-async function readOnce() {
-  if(isStopped) return;
-  if(!stream) {
-    alert("先にカメラ起動してください");
-    return;
-  }
-  if(busy) return;
-  busy = true;
-  setStatus("読取中...");
-  try {
-    const c = crop();
-    if(!c) {
-      setStatus("カメラ準備中");
-      return;
-    }
-    const w = await ensureWorker();
-    const r = await w.recognize(c);
-    if(isStopped) return;
-    const text = r.data.text || "";
-    el("rawBox").textContent = "読取文字：\n" + text;
-    const m = matchModel(text);
-    if(m.hit) showHit(m.hit, m.score);
-    else if(m.cand) showMissing(m.cand, m.score);
-    else showWaiting("型番が見つかりません", "型番だけを十字の中心に合わせてください");
-  } catch(e) {
-    setStatus("読取エラー：" + e.message);
-  } finally {
-    busy = false;
-  }
-}
-
-function showWaiting(title, msg) {
-  current = null;
-  const box = el("resultBox");
-  box.style.borderColor = "#24394f";
-  box.innerHTML = '<div><div class="state">'+escapeHtml(title)+'</div><div class="symbol" style="color:#fff">---</div><div class="meta">'+escapeHtml(msg)+'</div></div><div class="ruleBox" style="color:#fff"><div class="ruleKey">白</div><div class="ruleName">その他</div></div>';
-  setStatus(title);
-}
-
-function showHit(hit, score) {
-  const rule = ruleFor(hit.symbol);
-  current = {model:hit.model, symbol:hit.symbol, missing:false};
-  const box = el("resultBox");
-  box.style.borderColor = rule.color;
-  box.innerHTML = '<div><div class="state">✅ 照合一致</div><div class="symbol" style="color:'+rule.color+'">'+escapeHtml(hit.symbol)+'</div><div class="meta">型番：<b>'+escapeHtml(hit.model)+'</b><br>一致率：'+Math.round(score*100)+'%</div></div><div class="ruleBox" style="color:'+rule.color+'"><div class="ruleKey">'+escapeHtml(rule.key)+'</div><div class="ruleName">'+escapeHtml(rule.name)+'</div></div>';
-  setStatus(hit.model + " → " + hit.symbol);
-}
-
-function showMissing(cand, score) {
-  const short = String(cand || "未登録").slice(0, 24);
-  current = {model:short, symbol:short, missing:true};
-  const box = el("resultBox");
-  box.style.borderColor = "#fff";
-  box.innerHTML = '<div><div class="state">未登録</div><div class="symbol" style="font-size:38px;color:#fff">'+escapeHtml(short)+'</div><div class="meta">型番をそのまま追加できます</div></div><div class="ruleBox" style="color:#fff"><div class="ruleKey">白</div><div class="ruleName">その他</div></div>';
-  setStatus("未登録：" + short);
-}
-
-function addCurrent() {
-  if(!current) {
-    alert("先に型番を読取してください");
-    return;
-  }
-  const d = new Date();
-  const date = d.toISOString().slice(0,10).replaceAll("-","/");
-  const time = d.toTimeString().slice(0,5);
-  let found = checklist.find(x => x.date===date && x.symbol===current.symbol);
-  if(found && !found.locked) found.qty += 1;
-  else checklist.unshift({date,time,symbol:current.symbol,model:current.model,qty:1,locked:false,missing:current.missing});
-  renderChecklist();
-}
-
-function changeQty(index, delta) {
-  if(checklist[index].locked) return;
-  checklist[index].qty = Math.max(0, checklist[index].qty + delta);
-  renderChecklist();
-}
-
-function toggleLock(index) {
-  checklist[index].locked = !checklist[index].locked;
-  renderChecklist();
-}
-
-function renderChecklist() {
-  const target = el("checkList");
-  let groups = {};
-  checklist.forEach((x,i) => {
-    x._i = i;
-    if(!groups[x.date]) groups[x.date] = [];
-    groups[x.date].push(x);
-  });
-  let html = "";
-  Object.keys(groups).sort().reverse().forEach(date => {
-    const arr = groups[date];
-    const total = arr.reduce((s,x)=>s+x.qty,0);
-    html += '<div class="dateBlock"><div class="dateTitle"><span>'+date+'（'+arr.length+'件）</span><span>合計:'+total+'</span></div>';
-    arr.forEach(x => {
-      const rule = ruleFor(x.symbol);
-      const symbolHtml = x.missing ? '<span class="tiger">'+escapeHtml(x.symbol)+'</span>' : '<span class="itemSymbol" style="color:'+rule.color+'">'+escapeHtml(x.symbol)+'</span>';
-      html += '<div class="item"><div>'+symbolHtml+'</div><div class="itemRule" style="color:'+rule.color+'">'+escapeHtml(rule.name)+'</div><div class="qtyGrid"><button class="qbtn minus" data-i="'+x._i+'" data-d="-10">-10</button><button class="qbtn minus" data-i="'+x._i+'" data-d="-1">-1</button><div class="qtyNum">'+x.qty+'</div><button class="qbtn plus" data-i="'+x._i+'" data-d="1">+1</button><button class="qbtn plus" data-i="'+x._i+'" data-d="10">+10</button></div><div><button class="lockBtn '+(x.locked?'locked':'')+'" data-lock="'+x._i+'">🔒</button></div></div>';
-    });
-    html += '</div>';
-  });
-  target.innerHTML = html;
-  target.querySelectorAll("[data-i]").forEach(btn => {
-    btn.addEventListener("click", () => changeQty(Number(btn.dataset.i), Number(btn.dataset.d)));
-  });
-  target.querySelectorAll("[data-lock]").forEach(btn => {
-    btn.addEventListener("click", () => toggleLock(Number(btn.dataset.lock)));
-  });
-}
-
-function exportCsv() {
-  let lines = ["日付,時刻,照会記号,型番,数量,固定"];
-  checklist.forEach(x => {
-    lines.push([x.date,x.time,x.symbol,x.model,x.qty,x.locked?"固定":""].map(v => '"' + String(v).replaceAll('"','""') + '"').join(","));
-  });
-  const blob = new Blob(["\ufeff" + lines.join("\n")], {type:"text/csv"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "checklist.csv";
-  a.click();
-}
-
-function loadCsv(e) {
-  const f = e.target.files[0];
-  if(!f) return;
-  const r = new FileReader();
-  r.onload = () => {
-    const rows = parseCsv(r.result);
-    if(rows.length) {
-      data = rows;
-      el("csvInfo").textContent = "読込済み：" + f.name + " / " + rows.length + "件";
-      alert(rows.length + "件読み込みました");
-      setStatus("CSV読込：" + rows.length + "件");
-    } else {
-      alert("CSV読込失敗：型番 と 照会記号/紹介記号 の列が必要です");
-    }
-  };
-  r.readAsText(f, "utf-8");
-}
-
-function parseCsv(t) {
-  const lines = t.replace(/\r/g,"").split("\n").filter(x => x.trim());
-  if(lines.length < 2) return [];
-  const head = splitCsv(lines[0]).map(x => x.trim().replace(/^\ufeff/, ""));
-  return lines.slice(1).map(line => {
-    const cols = splitCsv(line);
-    const row = {};
-    head.forEach((k,i)=>row[k]=cols[i]||"");
-    const model = row["型番"] || row["器具型番"] || row["model"] || row["Model"] || "";
-    const symbol = row["照会記号"] || row["紹介記号"] || row["記号"] || row["symbol"] || row["Symbol"] || "";
-    return {
-      model: String(model).trim(),
-      symbol: String(symbol).trim(),
-      type: String(row["器具種別"] || row["種別"] || row["type"] || "").trim(),
-      note: String(row["備考"] || row["note"] || "").trim()
-    };
-  }).filter(r => r.model && r.symbol);
-}
-
-function splitCsv(line) {
-  let out=[], cur="", q=false;
-  for(let i=0;i<line.length;i++) {
-    const ch=line[i], nx=line[i+1];
-    if(ch=='"' && q && nx=='"') {cur+='"'; i++;}
-    else if(ch=='"') q=!q;
-    else if(ch=="," && !q) {out.push(cur); cur="";}
-    else cur+=ch;
-  }
-  out.push(cur);
-  return out;
-}
-
-function escapeHtml(s) {
-  return String(s || "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
-}
+let data=DATA_INIT.slice(), checklist=[], current=null, stream=null, worker=null, timer=null, busy=false, torchOn=false, isStopped=false;
+let rules=[{key:"a",name:"一般照明",color:"#ff2020"},{key:"b",name:"非常照明",color:"#1d7cff"},{key:"c",name:"誘導灯",color:"#ffd31a"},{key:"d",name:"ダウンライト",color:"#ff8200"},{key:"e",name:"スポットライト",color:"#42c83f"},{key:"f",name:"ベースライト",color:"#9747ff"},{key:"k",name:"防水",color:"#43cde6"},{key:"l",name:"ロング",color:"#7a3f18"},{key:"t",name:"その他",color:"#ffffff"}];
+const el=id=>document.getElementById(id);
+window.addEventListener("DOMContentLoaded",()=>{btnStart.addEventListener("click",startAuto);btnAdd.addEventListener("click",addCurrent);btnLight.addEventListener("click",toggleLight);btnRead.addEventListener("click",readOnce);btnStop.addEventListener("click",stopAll);btnExport.addEventListener("click",exportCsv);csvInput.addEventListener("change",loadCsv);renderChecklist();renderDataList();});
+function setStatus(s){status.textContent=s}
+function esc(s){return String(s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function normalize(s){return(s||"").toUpperCase().replace(/[ＯO]/g,"0").replace(/[ＩIＬ]/g,"1").replace(/[Ｓ]/g,"5").replace(/[Ｂ]/g,"8").replace(/[　\s_.,:;|/\\()[\]{}]+/g,"").replace(/[^A-Z0-9\-]/g,"").trim()}
+function lastAlpha(s){let m=String(s||"").toLowerCase().match(/[a-z](?!.*[a-z])/);return m?m[0]:"t"}
+function ruleFor(symbol){let k=lastAlpha(symbol);return rules.find(r=>r.key===k)||rules.find(r=>r.key==="t")}
+function looksLikeModel(s){let x=normalize(s);return x.length>=5&&x.length<=24&&/^(NNF|NNFB|NNLG|FA|FW|FSK|FK|LGB|XL|XND|NW|NDN)[A-Z0-9\-]{3,}/.test(x)}
+function extractCandidates(text){let joined=normalize(text), arr=[];[/NNFB\d{5}[A-Z]*/g,/NNF\d{5}[A-Z]*/g,/NNLG\d{5}[A-Z]*/g,/FSK\d{5}[A-Z]*/g,/FA\d{5}[A-Z]*/g,/FW\d{5}[A-Z]*/g,/LGB\d{3,6}[A-Z]*/g,/XND\d{3,6}[A-Z]*/g].forEach(p=>{let m=joined.match(p);if(m)arr.push(...m)});arr.push(...(joined.match(/[A-Z]{2,}[A-Z0-9\-]{3,}/g)||[]).filter(looksLikeModel));return [...new Set(arr)]}
+function sim(a,b){a=normalize(a);b=normalize(b);let m=a.length,l=b.length;if(!m||!l)return 0;let d=Array.from({length:m+1},()=>Array(l+1).fill(0));for(let i=0;i<=m;i++)d[i][0]=i;for(let j=0;j<=l;j++)d[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=l;j++){let c=a[i-1]===b[j-1]?0:1;d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+c)}return 1-d[m][l]/Math.max(m,l)}
+function matchModel(text){let candidates=extractCandidates(text), joined=normalize(text);for(const r of data){let m=normalize(r.model);if(joined.includes(m))return{hit:r,cand:r.model,score:1}}let best={hit:null,cand:candidates[0]||"",score:0};for(const r of data){let model=normalize(r.model);for(const c of candidates){let s=sim(c,model);if(s>best.score)best={hit:r,cand:c,score:s}}}if(best.score>=0.72)return best;if(candidates.length)return{hit:null,cand:candidates[0],score:best.score};return{hit:null,cand:"未読取",score:0}}
+async function ensureWorker(){if(worker)return worker;setStatus("OCR準備中...");worker=await Tesseract.createWorker("eng",1);await worker.setParameters({tessedit_char_whitelist:"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789- ",tessedit_pageseg_mode:"6"});setStatus("OCR準備完了");return worker}
+async function startAuto(){try{isStopped=false;await startCamera();if(timer)clearInterval(timer);timer=setInterval(readOnce,1200);await readOnce()}catch(e){setStatus("カメラエラー："+e.message);alert("カメラ起動失敗："+e.message)}}
+async function startCamera(){if(stream)return;stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1080}},audio:false});video.srcObject=stream;await video.play();await ensureWorker();setStatus("自動読取中")}
+function stopAll(){isStopped=true;if(timer){clearInterval(timer);timer=null}if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}video.srcObject=null;busy=false;setStatus("停止しました")}
+async function toggleLight(){try{if(!stream)return alert("先にカメラ起動してください");let track=stream.getVideoTracks()[0],cap=track.getCapabilities?track.getCapabilities():null;if(!cap||!cap.torch)return alert("このスマホ/ブラウザはライト制御に対応していません");torchOn=!torchOn;await track.applyConstraints({advanced:[{torch:torchOn}]});setStatus(torchOn?"ライトON":"ライトOFF")}catch(e){alert("ライト切替エラー："+e.message)}}
+function crop(){if(!video.videoWidth)return null;let c=work,sw=video.videoWidth*.92,sh=video.videoHeight*.45,sx=video.videoWidth*.04,sy=video.videoHeight*.28,scale=1100/sw;c.width=1100;c.height=Math.max(260,Math.floor(sh*scale));c.getContext("2d",{willReadFrequently:true}).drawImage(video,sx,sy,sw,sh,0,0,c.width,c.height);return c}
+async function readOnce(){if(isStopped)return;if(!stream)return alert("先にカメラ起動してください");if(busy)return;busy=true;setStatus("読取中...");try{let c=crop();if(!c){setStatus("カメラ準備中");return}let w=await ensureWorker(),r=await w.recognize(c);if(isStopped)return;let text=r.data.text||"";rawBox.textContent="読取文字：\n"+text;let m=matchModel(text);if(m.hit)showHit(m.hit,m.score,m.cand);else showMissing(m.cand,m.score)}catch(e){setStatus("読取エラー："+e.message)}finally{busy=false}}
+function showHit(hit,score,readText){let rule=ruleFor(hit.symbol);current={model:hit.model,symbol:hit.symbol,missing:false};resultBox.style.borderColor=rule.color;resultBox.innerHTML='<div><div class="state">✅ 照合一致</div><div class="modelNow">'+esc(readText||hit.model)+'</div><div class="symbol" style="color:'+rule.color+'">'+esc(hit.symbol)+'</div><div class="meta">CSV型番：<b>'+esc(hit.model)+'</b><br>一致率：'+Math.round(score*100)+'%</div></div><div class="ruleBox" style="color:'+rule.color+'"><div class="ruleKey">'+esc(rule.key)+'</div><div class="ruleName">'+esc(rule.name)+'</div></div>';setStatus(hit.model+" → "+hit.symbol)}
+function showMissing(cand,score){let short=String(cand||"未読取").slice(0,24);current={model:short,symbol:"未登録",missing:true};resultBox.style.borderColor="#fff";resultBox.innerHTML='<div><div class="state">未登録</div><div class="modelNow">'+esc(short)+'</div><div class="meta">CSVに無い/読めない型番です<br>このままチェックリスト追加できます</div></div><div class="ruleBox" style="color:#fff"><div class="ruleKey">白</div><div class="ruleName">未登録</div></div>';setStatus("未登録："+short)}
+function addCurrent(){if(!current)return alert("先に型番を読取してください");let d=new Date(),date=d.toISOString().slice(0,10).replaceAll("-","/"),time=d.toTimeString().slice(0,5),key=current.missing?current.model:current.symbol;let found=checklist.find(x=>x.date===date&&x.symbol===key);if(found&&!found.locked)found.qty+=1;else checklist.unshift({date,time,symbol:key,model:current.model,qty:1,locked:false,missing:current.missing});renderChecklist()}
+function changeQty(i,d){if(checklist[i].locked)return;checklist[i].qty=Math.max(0,checklist[i].qty+d);renderChecklist()}
+function toggleLock(i){checklist[i].locked=!checklist[i].locked;renderChecklist()}
+function renderChecklist(){let groups={};checklist.forEach((x,i)=>{x._i=i;(groups[x.date]||(groups[x.date]=[])).push(x)});let h="";Object.keys(groups).sort().reverse().forEach(date=>{let arr=groups[date],total=arr.reduce((s,x)=>s+x.qty,0);h+='<div class="dateBlock"><div class="dateTitle"><span>'+date+'（'+arr.length+'件）</span><span>合計:'+total+'</span></div>';arr.forEach(x=>{let rule=ruleFor(x.symbol),sym=x.missing?'<span class="tiger">'+esc(x.symbol)+'</span>':'<span class="itemSymbol" style="color:'+rule.color+'">'+esc(x.symbol)+'</span>';h+='<div class="item"><div>'+sym+'</div><div class="itemRule" style="color:'+rule.color+'">'+esc(x.model)+'</div><div class="qtyGrid"><button class="qbtn minus" data-i="'+x._i+'" data-d="-10">-10</button><button class="qbtn minus" data-i="'+x._i+'" data-d="-1">-1</button><div class="qtyNum">'+x.qty+'</div><button class="qbtn plus" data-i="'+x._i+'" data-d="1">+1</button><button class="qbtn plus" data-i="'+x._i+'" data-d="10">+10</button></div><div><button class="lockBtn '+(x.locked?'locked':'')+'" data-lock="'+x._i+'">🔒</button></div></div>'});h+='</div>'});checkList.innerHTML=h;checkList.querySelectorAll("[data-i]").forEach(b=>b.addEventListener("click",()=>changeQty(Number(b.dataset.i),Number(b.dataset.d))));checkList.querySelectorAll("[data-lock]").forEach(b=>b.addEventListener("click",()=>toggleLock(Number(b.dataset.lock))))}
+function renderDataList(){dataCount.textContent=data.length+"件";dataList.innerHTML=data.map(r=>{let rule=ruleFor(r.symbol);return '<div class="dataRow"><div class="dataSym" style="color:'+rule.color+'">'+esc(r.symbol)+'</div><div class="dataModel">'+esc(r.model)+'</div></div>'}).join("")}
+function exportCsv(){let lines=["日付,時刻,照会記号,型番,数量,固定"];checklist.forEach(x=>lines.push([x.date,x.time,x.symbol,x.model,x.qty,x.locked?"固定":""].map(v=>'"'+String(v).replaceAll('"','""')+'"').join(",")));let blob=new Blob(["\ufeff"+lines.join("\n")],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="checklist.csv";a.click()}
+function loadCsv(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{let rows=parseCsv(r.result);if(rows.length){data=rows;csvInfo.textContent="読込済み："+f.name+" / "+rows.length+"件";renderDataList();alert(rows.length+"件読み込みました");setStatus("CSV読込："+rows.length+"件")}else alert("CSV読込失敗：型番 と 照会記号/紹介記号 の列が必要です")};r.readAsText(f,"utf-8")}
+function parseCsv(t){let lines=t.replace(/\r/g,"").split("\n").filter(x=>x.trim());if(lines.length<2)return[];let head=splitCsv(lines[0]).map(x=>x.trim().replace(/^\ufeff/,""));return lines.slice(1).map(line=>{let cols=splitCsv(line),row={};head.forEach((k,i)=>row[k]=cols[i]||"");let model=row["型番"]||row["器具型番"]||row["model"]||row["Model"]||"",symbol=row["照会記号"]||row["紹介記号"]||row["記号"]||row["symbol"]||row["Symbol"]||"";return{model:String(model).trim(),symbol:String(symbol).trim(),type:String(row["器具種別"]||row["種別"]||row["type"]||"").trim(),note:String(row["備考"]||row["note"]||"").trim()}}).filter(r=>r.model&&r.symbol)}
+function splitCsv(line){let out=[],cur="",q=false;for(let i=0;i<line.length;i++){let ch=line[i],nx=line[i+1];if(ch=='"'&&q&&nx=='"'){cur+='"';i++}else if(ch=='"')q=!q;else if(ch==","&&!q){out.push(cur);cur=""}else cur+=ch}out.push(cur);return out}
 </script>
 </body>
 </html>
