@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>照明器具 OCR</title>
+<title>照明器具 自動OCR照会記号チェッカー</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -22,7 +22,7 @@ video{display:block;width:100%;height:34vh;object-fit:cover;background:#000}
 .guide{position:absolute;left:10%;right:10%;bottom:14px;background:#000a;border-radius:999px;text-align:center;padding:7px;font-weight:800}
 .result{display:grid;grid-template-columns:1fr 95px;gap:8px;background:linear-gradient(#0d1824,#07111b);border:2px solid #24394f;border-radius:16px;padding:14px;margin-bottom:10px}
 .state{color:#35ff91;font-weight:900;font-size:18px}
-.symbol{font-size:62px;font-weight:1000;line-height:1}
+.symbol{font-size:62px;font-weight:1000;line-height:1;word-break:break-all}
 .meta{font-size:17px;line-height:1.5}
 .ruleBox{border:2px solid currentColor;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900}
 .ruleKey{font-size:38px}.ruleName{font-size:14px}
@@ -44,9 +44,10 @@ button,label.fileLabel{border:0;border-radius:12px;padding:14px 8px;color:#fff;f
 .qtyNum{font-size:24px;font-weight:900;text-align:center}
 .lockBtn{font-size:22px;padding:8px;background:#111;border:1px solid #555}.locked{color:#ffd400;border-color:#ffd400}
 .card{background:#101010;border:1px solid #333;border-radius:14px;padding:12px;margin-top:10px}
-.raw{white-space:pre-wrap;background:#080808;border-radius:10px;padding:8px;font-size:12px;color:#bbb;max-height:90px;overflow:auto}
+.raw{white-space:pre-wrap;background:#080808;border-radius:10px;padding:8px;font-size:12px;color:#bbb;max-height:120px;overflow:auto}
 input[type=file]{display:none}
 .tiger{background:repeating-linear-gradient(135deg,#ffd400 0 12px,#000 12px 24px);color:#000;text-shadow:0 1px 0 #fff;border-radius:8px;padding:5px 6px;font-weight:1000;display:inline-block}
+.csvInfo{font-size:14px;color:#ccc;line-height:1.5;margin-top:8px}
 canvas{display:none}
 </style>
 </head>
@@ -91,6 +92,7 @@ canvas{display:none}
   <b>CSV読込</b>
   <label for="csvInput" class="fileLabel black">📁 CSVファイルを選択</label>
   <input id="csvInput" type="file" accept=".csv,text/csv">
+  <div id="csvInfo" class="csvInfo">初期データ：33件<br>対応列名：型番, 照会記号, 紹介記号, 記号, 器具種別, 備考</div>
 </section>
 
 <section class="card">
@@ -101,7 +103,7 @@ canvas{display:none}
 <canvas id="work"></canvas>
 
 <script>
-const DATA_INIT = [{"model": "NNFB84665", "symbol": "E1a", "type": "非常照明", "note": "LED 6.6W×1"}, {"model": "NNFB84695", "symbol": "E1a黒", "type": "非常照明", "note": "LED 6.6W×1 黒塗装"}, {"model": "NNFB87609", "symbol": "E2a", "type": "非常照明", "note": "LED 15.4W×1"}, {"model": "NNFB87649", "symbol": "E2a黒", "type": "非常照明", "note": "LED 15.4W×1 黒塗装"}, {"model": "NNFB84005", "symbol": "E3a", "type": "非常照明", "note": "LED 6.6W×1"}, {"model": "NNFB84045", "symbol": "E3a黒", "type": "非常照明", "note": "LED 6.6W×1 黒塗装"}, {"model": "NNFB84715", "symbol": "E4a", "type": "非常照明", "note": "LED 6.6W×1"}, {"model": "NNLG01509", "symbol": "E5a", "type": "非常照明", "note": "LED 6.6W×1"}, {"model": "NNFB84105", "symbol": "E6a", "type": "非常照明", "note": "LED 6.6W×1"}, {"model": "NNFB87009", "symbol": "E7a", "type": "非常照明", "note": "LED 15.4W×1"}, {"model": "NNFB87049", "symbol": "E7a黒", "type": "非常照明", "note": "LED 15.4W×1 黒塗装"}, {"model": "NNFB87109", "symbol": "E8a", "type": "非常照明", "note": "LED 15.4W×1"}, {"model": "NNFB87919", "symbol": "E9a", "type": "非常照明", "note": "LED 15.4W×1"}, {"model": "FA40356C LE1", "symbol": "X1L", "type": "避難口誘導灯", "note": "片面 B級BH形 長時間定格型"}, {"model": "FA40352C LE1", "symbol": "X2", "type": "避難口誘導灯", "note": "片面 B級BH形"}, {"model": "FA40316C LE1", "symbol": "X3L", "type": "避難口誘導灯", "note": "片面 B級BH形 長時間定格型"}, {"model": "FA40312C LE1", "symbol": "X4", "type": "避難口誘導灯", "note": "片面 B級BH形"}, {"model": "FW42317C", "symbol": "X5Lu", "type": "避難口誘導灯", "note": "片面 B級BH形"}, {"model": "FW42317C LE1", "symbol": "X7u", "type": "避難口誘導灯", "note": "片面 B級BH形"}, {"model": "FW42337C LE1", "symbol": "X8u", "type": "避難口誘導灯", "note": "片面 B級BH形"}, {"model": "FW40315 LE1", "symbol": "X9L", "type": "避難口誘導灯", "note": "両面 B級BH形"}, {"model": "FW42327C LE1", "symbol": "X10u", "type": "避難口誘導灯", "note": "壁付型 防雨・防湿"}, {"model": "FA40356C LE1", "symbol": "Y1L", "type": "通路誘導灯", "note": "片面 B級BH形 長時間定格型"}, {"model": "FA40366C LE1", "symbol": "Y2L", "type": "通路誘導灯", "note": "両面 B級BH形 長時間定格型"}, {"model": "FA40352C LE1", "symbol": "Y3", "type": "通路誘導灯", "note": "片面 B級BH形"}, {"model": "FA40362C LE1", "symbol": "Y4", "type": "通路誘導灯", "note": "両面 B級BH形"}, {"model": "FA40312C LE1", "symbol": "Y5", "type": "通路誘導灯", "note": "片面 B級BH形"}, {"model": "FA40322C LE1", "symbol": "Y6", "type": "通路誘導灯", "note": "両面 B級BH形"}, {"model": "FW42337C LE1", "symbol": "Y8u", "type": "通路誘導灯", "note": "片面 B級BH形"}, {"model": "FA01520J", "symbol": "Y9", "type": "客席誘導灯", "note": "LED 1.9W×1"}];
+const DATA_INIT = [{"model": "NNFB84665", "symbol": "E1a", "type": "", "note": ""}, {"model": "NNFB84695", "symbol": "E1a黒", "type": "", "note": ""}, {"model": "NNFB87609", "symbol": "E2a", "type": "", "note": ""}, {"model": "NNFB87649", "symbol": "E2a黒", "type": "", "note": ""}, {"model": "NNFB84005", "symbol": "E3a", "type": "", "note": ""}, {"model": "NNFB84045", "symbol": "E3a黒", "type": "", "note": ""}, {"model": "NNFB84715", "symbol": "E4a", "type": "", "note": ""}, {"model": "NNLG01509", "symbol": "E5a", "type": "", "note": ""}, {"model": "NNFB84105", "symbol": "E6a", "type": "", "note": ""}, {"model": "NNFB87009", "symbol": "E7a", "type": "", "note": ""}, {"model": "NNFB87049", "symbol": "E7a黒", "type": "", "note": ""}, {"model": "NNFB87109", "symbol": "E8a", "type": "", "note": ""}, {"model": "NNFB87919", "symbol": "E9a", "type": "", "note": ""}, {"model": "FA40356C LE1", "symbol": "X1L", "type": "", "note": ""}, {"model": "FA40352C LE1", "symbol": "X2", "type": "", "note": ""}, {"model": "FA40316C LE1", "symbol": "X3L", "type": "", "note": ""}, {"model": "FA40312C LE1", "symbol": "X4", "type": "", "note": ""}, {"model": "FW42317C", "symbol": "X5Lu", "type": "", "note": ""}, {"model": "FW42317C", "symbol": "X6u", "type": "", "note": ""}, {"model": "FW42317C LE1", "symbol": "X7u", "type": "", "note": ""}, {"model": "FW42337C LE1", "symbol": "X8u", "type": "", "note": ""}, {"model": "FW40315 LE1", "symbol": "X9L", "type": "", "note": ""}, {"model": "FW42327C LE1", "symbol": "X10u", "type": "", "note": ""}, {"model": "FA40356C LE1", "symbol": "Y1L", "type": "", "note": ""}, {"model": "FA40366C LE1", "symbol": "Y2L", "type": "", "note": ""}, {"model": "FA40352C LE1", "symbol": "Y3", "type": "", "note": ""}, {"model": "FA40362C LE1", "symbol": "Y4", "type": "", "note": ""}, {"model": "FA40312C LE1", "symbol": "Y5", "type": "", "note": ""}, {"model": "FA40322C LE1", "symbol": "Y6", "type": "", "note": ""}, {"model": "FW42317C LE1", "symbol": "Y7u", "type": "", "note": ""}, {"model": "FW42337C LE1", "symbol": "Y8u", "type": "", "note": ""}, {"model": "FA01520J", "symbol": "Y9", "type": "", "note": ""}, {"model": "FSK90910K", "symbol": "自己点検リモコン", "type": "", "note": ""}];
 let data = DATA_INIT.slice();
 
 let rules = [
@@ -409,10 +411,11 @@ function loadCsv(e) {
     const rows = parseCsv(r.result);
     if(rows.length) {
       data = rows;
+      el("csvInfo").innerHTML = "読込済み：" + escapeHtml(f.name) + "<br>" + rows.length + "件";
       alert(rows.length + "件読み込みました");
       setStatus("CSV読込：" + rows.length + "件");
     } else {
-      alert("CSV読込失敗");
+      alert("CSV読込失敗：列名は 型番 と 照会記号/紹介記号 が必要です");
     }
   };
   r.readAsText(f, "utf-8");
@@ -421,16 +424,18 @@ function loadCsv(e) {
 function parseCsv(t) {
   const lines = t.replace(/\r/g,"").split("\n").filter(x => x.trim());
   if(lines.length < 2) return [];
-  const head = splitCsv(lines[0]).map(x => x.trim());
+  const head = splitCsv(lines[0]).map(x => x.trim().replace(/^\ufeff/, ""));
   return lines.slice(1).map(line => {
     const cols = splitCsv(line);
     const row = {};
     head.forEach((k,i)=>row[k]=cols[i]||"");
+    const model = row["型番"] || row["器具型番"] || row["model"] || row["Model"] || "";
+    const symbol = row["照会記号"] || row["紹介記号"] || row["記号"] || row["symbol"] || row["Symbol"] || "";
     return {
-      model: row["型番"] || row["model"] || "",
-      symbol: row["照会記号"] || row["紹介記号"] || row["symbol"] || row["記号"] || "",
-      type: row["器具種別"] || "",
-      note: row["備考"] || ""
+      model: String(model).trim(),
+      symbol: String(symbol).trim(),
+      type: String(row["器具種別"] || row["種別"] || row["type"] || "").trim(),
+      note: String(row["備考"] || row["note"] || "").trim()
     };
   }).filter(r => r.model && r.symbol);
 }
