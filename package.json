@@ -1,6 +1,6 @@
 {
-  "name": "lighting-ocr-csv-fixed",
-  "version": "1.9.0",
+  "name": "lighting-ocr-csv-original-style",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "build": "mkdir -p dist && cp index.html dist/index.html && cp sample_data.csv dist/sample_data.csv"
