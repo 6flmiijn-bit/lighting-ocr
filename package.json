@@ -1,6 +1,6 @@
 {
-  "name": "lighting-ocr-stable-checklist",
-  "version": "1.7.0",
+  "name": "lighting-ocr-button-safe",
+  "version": "1.8.0",
   "private": true,
   "scripts": {
     "build": "mkdir -p dist && cp index.html dist/index.html && cp sample_data.csv dist/sample_data.csv"

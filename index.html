@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>照明器具 自動OCR照会記号チェッカー</title>
+<title>照明器具 OCR</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -26,9 +26,9 @@ video{display:block;width:100%;height:34vh;object-fit:cover;background:#000}
 .meta{font-size:17px;line-height:1.5}
 .ruleBox{border:2px solid currentColor;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900}
 .ruleKey{font-size:38px}.ruleName{font-size:14px}
-.buttons{display:grid;grid-template-columns:1fr 1.8fr .75fr;gap:8px;margin:8px 0}
-.buttons2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
-button{border:0;border-radius:12px;padding:14px 8px;color:#fff;font-size:17px;font-weight:900}
+.grid3{display:grid;grid-template-columns:1fr 1.6fr .8fr;gap:8px;margin:8px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+button,label.fileLabel{border:0;border-radius:12px;padding:14px 8px;color:#fff;font-size:17px;font-weight:900;text-align:center;display:block}
 .blue{background:#0967dc}.green{background:#079b37}.red{background:#ad1515}.black{background:#111;border:1px solid #333}
 .status{display:flex;gap:8px;align-items:center;color:#ccc;margin:6px 0}.dot{width:13px;height:13px;border-radius:50%;background:#1ed760}
 .checkTitle{display:flex;align-items:center;justify-content:space-between;background:#101010;border:1px solid #333;border-radius:12px;padding:10px;margin-top:10px}
@@ -45,10 +45,9 @@ button{border:0;border-radius:12px;padding:14px 8px;color:#fff;font-size:17px;fo
 .lockBtn{font-size:22px;padding:8px;background:#111;border:1px solid #555}.locked{color:#ffd400;border-color:#ffd400}
 .card{background:#101010;border:1px solid #333;border-radius:14px;padding:12px;margin-top:10px}
 .raw{white-space:pre-wrap;background:#080808;border-radius:10px;padding:8px;font-size:12px;color:#bbb;max-height:90px;overflow:auto}
-.fileInput{display:block;width:100%;background:#fff;color:#111;border-radius:10px;padding:12px;margin-top:8px}
+input[type=file]{display:none}
 .tiger{background:repeating-linear-gradient(135deg,#ffd400 0 12px,#000 12px 24px);color:#000;text-shadow:0 1px 0 #fff;border-radius:8px;padding:5px 6px;font-weight:1000;display:inline-block}
 canvas{display:none}
-@media(max-width:520px){.symbol{font-size:54px}.result{grid-template-columns:1fr 88px}.item{grid-template-columns:1.15fr .9fr 1.9fr .5fr}.qtyGrid{grid-template-columns:35px 35px 38px 35px 35px}.itemRule{font-size:16px}}
 </style>
 </head>
 <body>
@@ -70,27 +69,28 @@ canvas{display:none}
   <div class="ruleBox" style="color:white"><div class="ruleKey">白</div><div class="ruleName">その他</div></div>
 </section>
 
-<div class="buttons">
-  <button class="blue" onclick="startAuto()">📷 カメラ起動<br><small>自動読取</small></button>
-  <button class="green" onclick="addCurrent()">＋ チェックリストに追加<br><small>数量を+1</small></button>
-  <button class="black" onclick="toggleLight()">💡<br>ライト</button>
+<div class="grid3">
+  <button id="btnStart" class="blue">📷 カメラ起動<br><small>自動読取</small></button>
+  <button id="btnAdd" class="green">＋ チェックリストに追加<br><small>数量を+1</small></button>
+  <button id="btnLight" class="black">💡<br>ライト</button>
 </div>
-<div class="buttons2">
-  <button class="black" onclick="readOnce()">1回だけ読取</button>
-  <button class="red" onclick="stopAll()">■ 停止</button>
+<div class="grid2">
+  <button id="btnRead" class="black">1回だけ読取</button>
+  <button id="btnStop" class="red">■ 停止</button>
 </div>
 
 <div class="status"><span class="dot"></span><span id="status">待機中</span></div>
 
 <section class="checkTitle">
   <h3>チェックリスト</h3>
-  <button class="black" onclick="exportCsv()">CSV書き出し</button>
+  <button id="btnExport" class="black">CSV書き出し</button>
 </section>
 <div id="checkList"></div>
 
 <section class="card">
   <b>CSV読込</b>
-  <input class="fileInput" type="file" accept=".csv,text/csv" onchange="loadCsv(event)">
+  <label for="csvInput" class="fileLabel black">📁 CSVファイルを選択</label>
+  <input id="csvInput" type="file" accept=".csv,text/csv">
 </section>
 
 <section class="card">
@@ -101,7 +101,9 @@ canvas{display:none}
 <canvas id="work"></canvas>
 
 <script>
-let data = [{"model": "NNFB84665", "symbol": "E1a", "type": "非常照明", "note": "LED 6.6W×1"}, {"model": "NNFB84695", "symbol": "E1a黒", "type": "非常照明", "note": "LED 6.6W×1 黒塗装"}, {"model": "NNFB87609", "symbol": "E2a", "type": "非常照明", "note": "LED 15.4W×1"}, {"model": "NNFB87649", "symbol": "E2a黒", "type": "非常照明", "note": "LED 15.4W×1 黒塗装"}, {"model": "NNFB84005", "symbol": "E3a", "type": "非常照明", "note": "LED 6.6W×1"}, {"model": "NNFB84045", "symbol": "E3a黒", "type": "非常照明", "note": "LED 6.6W×1 黒塗装"}, {"model": "NNFB84715", "symbol": "E4a", "type": "非常照明", "note": "LED 6.6W×1"}, {"model": "NNLG01509", "symbol": "E5a", "type": "非常照明", "note": "LED 6.6W×1"}, {"model": "NNFB84105", "symbol": "E6a", "type": "非常照明", "note": "LED 6.6W×1"}, {"model": "NNFB87009", "symbol": "E7a", "type": "非常照明", "note": "LED 15.4W×1"}, {"model": "NNFB87049", "symbol": "E7a黒", "type": "非常照明", "note": "LED 15.4W×1 黒塗装"}, {"model": "NNFB87109", "symbol": "E8a", "type": "非常照明", "note": "LED 15.4W×1"}, {"model": "NNFB87919", "symbol": "E9a", "type": "非常照明", "note": "LED 15.4W×1"}, {"model": "FA40356C LE1", "symbol": "X1L", "type": "避難口誘導灯", "note": "片面 B級BH形 長時間定格型"}, {"model": "FA40352C LE1", "symbol": "X2", "type": "避難口誘導灯", "note": "片面 B級BH形"}, {"model": "FA40316C LE1", "symbol": "X3L", "type": "避難口誘導灯", "note": "片面 B級BH形 長時間定格型"}, {"model": "FA40312C LE1", "symbol": "X4", "type": "避難口誘導灯", "note": "片面 B級BH形"}, {"model": "FW42317C", "symbol": "X5Lu", "type": "避難口誘導灯", "note": "片面 B級BH形"}, {"model": "FW42317C LE1", "symbol": "X7u", "type": "避難口誘導灯", "note": "片面 B級BH形"}, {"model": "FW42337C LE1", "symbol": "X8u", "type": "避難口誘導灯", "note": "片面 B級BH形"}, {"model": "FW40315 LE1", "symbol": "X9L", "type": "避難口誘導灯", "note": "両面 B級BH形"}, {"model": "FW42327C LE1", "symbol": "X10u", "type": "避難口誘導灯", "note": "壁付型 防雨・防湿"}, {"model": "FA40356C LE1", "symbol": "Y1L", "type": "通路誘導灯", "note": "片面 B級BH形 長時間定格型"}, {"model": "FA40366C LE1", "symbol": "Y2L", "type": "通路誘導灯", "note": "両面 B級BH形 長時間定格型"}, {"model": "FA40352C LE1", "symbol": "Y3", "type": "通路誘導灯", "note": "片面 B級BH形"}, {"model": "FA40362C LE1", "symbol": "Y4", "type": "通路誘導灯", "note": "両面 B級BH形"}, {"model": "FA40312C LE1", "symbol": "Y5", "type": "通路誘導灯", "note": "片面 B級BH形"}, {"model": "FA40322C LE1", "symbol": "Y6", "type": "通路誘導灯", "note": "両面 B級BH形"}, {"model": "FW42337C LE1", "symbol": "Y8u", "type": "通路誘導灯", "note": "片面 B級BH形"}, {"model": "FA01520J", "symbol": "Y9", "type": "客席誘導灯", "note": "LED 1.9W×1"}];
+const DATA_INIT = [{"model": "NNFB84665", "symbol": "E1a", "type": "非常照明", "note": "LED 6.6W×1"}, {"model": "NNFB84695", "symbol": "E1a黒", "type": "非常照明", "note": "LED 6.6W×1 黒塗装"}, {"model": "NNFB87609", "symbol": "E2a", "type": "非常照明", "note": "LED 15.4W×1"}, {"model": "NNFB87649", "symbol": "E2a黒", "type": "非常照明", "note": "LED 15.4W×1 黒塗装"}, {"model": "NNFB84005", "symbol": "E3a", "type": "非常照明", "note": "LED 6.6W×1"}, {"model": "NNFB84045", "symbol": "E3a黒", "type": "非常照明", "note": "LED 6.6W×1 黒塗装"}, {"model": "NNFB84715", "symbol": "E4a", "type": "非常照明", "note": "LED 6.6W×1"}, {"model": "NNLG01509", "symbol": "E5a", "type": "非常照明", "note": "LED 6.6W×1"}, {"model": "NNFB84105", "symbol": "E6a", "type": "非常照明", "note": "LED 6.6W×1"}, {"model": "NNFB87009", "symbol": "E7a", "type": "非常照明", "note": "LED 15.4W×1"}, {"model": "NNFB87049", "symbol": "E7a黒", "type": "非常照明", "note": "LED 15.4W×1 黒塗装"}, {"model": "NNFB87109", "symbol": "E8a", "type": "非常照明", "note": "LED 15.4W×1"}, {"model": "NNFB87919", "symbol": "E9a", "type": "非常照明", "note": "LED 15.4W×1"}, {"model": "FA40356C LE1", "symbol": "X1L", "type": "避難口誘導灯", "note": "片面 B級BH形 長時間定格型"}, {"model": "FA40352C LE1", "symbol": "X2", "type": "避難口誘導灯", "note": "片面 B級BH形"}, {"model": "FA40316C LE1", "symbol": "X3L", "type": "避難口誘導灯", "note": "片面 B級BH形 長時間定格型"}, {"model": "FA40312C LE1", "symbol": "X4", "type": "避難口誘導灯", "note": "片面 B級BH形"}, {"model": "FW42317C", "symbol": "X5Lu", "type": "避難口誘導灯", "note": "片面 B級BH形"}, {"model": "FW42317C LE1", "symbol": "X7u", "type": "避難口誘導灯", "note": "片面 B級BH形"}, {"model": "FW42337C LE1", "symbol": "X8u", "type": "避難口誘導灯", "note": "片面 B級BH形"}, {"model": "FW40315 LE1", "symbol": "X9L", "type": "避難口誘導灯", "note": "両面 B級BH形"}, {"model": "FW42327C LE1", "symbol": "X10u", "type": "避難口誘導灯", "note": "壁付型 防雨・防湿"}, {"model": "FA40356C LE1", "symbol": "Y1L", "type": "通路誘導灯", "note": "片面 B級BH形 長時間定格型"}, {"model": "FA40366C LE1", "symbol": "Y2L", "type": "通路誘導灯", "note": "両面 B級BH形 長時間定格型"}, {"model": "FA40352C LE1", "symbol": "Y3", "type": "通路誘導灯", "note": "片面 B級BH形"}, {"model": "FA40362C LE1", "symbol": "Y4", "type": "通路誘導灯", "note": "両面 B級BH形"}, {"model": "FA40312C LE1", "symbol": "Y5", "type": "通路誘導灯", "note": "片面 B級BH形"}, {"model": "FA40322C LE1", "symbol": "Y6", "type": "通路誘導灯", "note": "両面 B級BH形"}, {"model": "FW42337C LE1", "symbol": "Y8u", "type": "通路誘導灯", "note": "片面 B級BH形"}, {"model": "FA01520J", "symbol": "Y9", "type": "客席誘導灯", "note": "LED 1.9W×1"}];
+let data = DATA_INIT.slice();
+
 let rules = [
   {key:"a",name:"一般照明",color:"#ff2020"},
   {key:"b",name:"非常照明",color:"#1d7cff"},
@@ -113,19 +115,38 @@ let rules = [
   {key:"l",name:"ロング",color:"#7a3f18"},
   {key:"t",name:"その他",color:"#ffffff"}
 ];
+
 let checklist = [];
 let current = null;
 let stream = null;
 let worker = null;
 let timer = null;
 let busy = false;
-let torch = false;
+let torchOn = false;
+let isStopped = false;
+
+const el = (id) => document.getElementById(id);
+
+window.addEventListener("DOMContentLoaded", () => {
+  el("btnStart").addEventListener("click", startAuto);
+  el("btnAdd").addEventListener("click", addCurrent);
+  el("btnLight").addEventListener("click", toggleLight);
+  el("btnRead").addEventListener("click", readOnce);
+  el("btnStop").addEventListener("click", stopAll);
+  el("btnExport").addEventListener("click", exportCsv);
+  el("csvInput").addEventListener("change", loadCsv);
+  renderChecklist();
+});
+
+function setStatus(s) { el("status").textContent = s; }
 
 function normalize(s) {
   return (s || "").toUpperCase()
-    .replace(/[ＯO]/g,"0").replace(/[ＩIＬ]/g,"1")
+    .replace(/[ＯO]/g,"0")
+    .replace(/[ＩIＬ]/g,"1")
     .replace(/[　\s_.,:;|/\\()[\]{}]+/g,"")
-    .replace(/[^A-Z0-9\-]/g,"").trim();
+    .replace(/[^A-Z0-9\-]/g,"")
+    .trim();
 }
 
 function lastAlpha(s) {
@@ -180,84 +201,118 @@ async function ensureWorker() {
   worker = await Tesseract.createWorker("eng", 1);
   await worker.setParameters({
     tessedit_char_whitelist:"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789- ",
-    tessedit_pageseg_mode:"6",
-    preserve_interword_spaces:"0"
+    tessedit_pageseg_mode:"6"
   });
   setStatus("OCR準備完了");
   return worker;
 }
 
 async function startAuto() {
-  await startCamera();
-  if(timer) clearInterval(timer);
-  timer = setInterval(readOnce, 1000);
-  readOnce();
+  try {
+    isStopped = false;
+    await startCamera();
+    if(timer) clearInterval(timer);
+    timer = setInterval(readOnce, 1200);
+    await readOnce();
+  } catch(e) {
+    setStatus("カメラエラー：" + e.message);
+    alert("カメラ起動失敗：" + e.message);
+  }
 }
 
 async function startCamera() {
   if(stream) return;
   stream = await navigator.mediaDevices.getUserMedia({
-    video: {facingMode: {ideal:"environment"}, width: {ideal:1920}, height: {ideal:1080}},
+    video: {
+      facingMode: {ideal:"environment"},
+      width: {ideal:1920},
+      height: {ideal:1080}
+    },
     audio:false
   });
-  const v = document.getElementById("video");
-  v.srcObject = stream;
-  await v.play();
+  const video = el("video");
+  video.srcObject = stream;
+  await video.play();
   await ensureWorker();
   setStatus("自動読取中");
 }
 
 function stopAll() {
-  if(timer) clearInterval(timer);
-  timer = null;
+  isStopped = true;
+  if(timer) {
+    clearInterval(timer);
+    timer = null;
+  }
   if(stream) {
     stream.getTracks().forEach(t => t.stop());
     stream = null;
   }
-  document.getElementById("video").srcObject = null;
-  setStatus("停止中");
+  el("video").srcObject = null;
+  busy = false;
+  setStatus("停止しました");
 }
 
 async function toggleLight() {
-  if(!stream) return alert("先にカメラ起動");
-  const track = stream.getVideoTracks()[0];
-  const cap = track.getCapabilities ? track.getCapabilities() : null;
-  if(!cap || !cap.torch) return alert("この端末はライト制御非対応です");
-  torch = !torch;
-  await track.applyConstraints({advanced:[{torch}]});
+  try {
+    if(!stream) {
+      alert("先にカメラ起動してください");
+      return;
+    }
+    const track = stream.getVideoTracks()[0];
+    const cap = track.getCapabilities ? track.getCapabilities() : null;
+    if(!cap || !cap.torch) {
+      alert("このスマホ/ブラウザはライト制御に対応していません");
+      return;
+    }
+    torchOn = !torchOn;
+    await track.applyConstraints({advanced:[{torch: torchOn}]});
+    setStatus(torchOn ? "ライトON" : "ライトOFF");
+  } catch(e) {
+    alert("ライト切替エラー：" + e.message);
+  }
 }
 
 function crop() {
-  const v = document.getElementById("video");
-  if(!v.videoWidth) return null;
-  const c = document.getElementById("work");
-  const sw = v.videoWidth * 0.92;
-  const sh = v.videoHeight * 0.45;
-  const sx = v.videoWidth * 0.04;
-  const sy = v.videoHeight * 0.28;
+  const video = el("video");
+  if(!video.videoWidth) return null;
+  const c = el("work");
+  const sw = video.videoWidth * 0.92;
+  const sh = video.videoHeight * 0.45;
+  const sx = video.videoWidth * 0.04;
+  const sy = video.videoHeight * 0.28;
   const scale = 1100 / sw;
   c.width = 1100;
   c.height = Math.max(260, Math.floor(sh * scale));
   const ctx = c.getContext("2d", {willReadFrequently:true});
-  ctx.drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
   return c;
 }
 
 async function readOnce() {
-  if(busy || !stream) return;
+  if(isStopped) return;
+  if(!stream) {
+    alert("先にカメラ起動してください");
+    return;
+  }
+  if(busy) return;
   busy = true;
+  setStatus("読取中...");
   try {
     const c = crop();
-    if(!c) return;
+    if(!c) {
+      setStatus("カメラ準備中");
+      return;
+    }
     const w = await ensureWorker();
     const r = await w.recognize(c);
+    if(isStopped) return;
     const text = r.data.text || "";
     const m = matchModel(text);
-    document.getElementById("raw").textContent = "OCR文字:\n" + text + "\n候補:" + m.cand + "\n一致率:" + Math.round(m.score*100) + "%";
+    el("raw").textContent = "OCR文字:\n" + text + "\n候補:" + m.cand + "\n一致率:" + Math.round(m.score*100) + "%";
     if(m.hit) showHit(m.hit, m.score);
     else showMissing(m.cand, m.score);
   } catch(e) {
-    setStatus("エラー：" + e.message);
+    setStatus("読取エラー：" + e.message);
   } finally {
     busy = false;
   }
@@ -266,7 +321,7 @@ async function readOnce() {
 function showHit(hit, score) {
   const rule = ruleFor(hit.symbol);
   current = {model:hit.model, symbol:hit.symbol, missing:false};
-  const box = document.getElementById("resultBox");
+  const box = el("resultBox");
   box.style.borderColor = rule.color;
   box.innerHTML = '<div><div class="state">✅ 照合一致</div><div class="symbol" style="color:'+rule.color+'">'+escapeHtml(hit.symbol)+'</div><div class="meta">型番：<b>'+escapeHtml(hit.model)+'</b><br>一致率：'+Math.round(score*100)+'%</div></div><div class="ruleBox" style="color:'+rule.color+'"><div class="ruleKey">'+escapeHtml(rule.key)+'</div><div class="ruleName">'+escapeHtml(rule.name)+'</div></div>';
   setStatus(hit.model + " → " + hit.symbol);
@@ -274,14 +329,17 @@ function showHit(hit, score) {
 
 function showMissing(cand, score) {
   current = {model:cand, symbol:cand || "未登録", missing:true};
-  const box = document.getElementById("resultBox");
+  const box = el("resultBox");
   box.style.borderColor = "#fff";
   box.innerHTML = '<div><div class="state">未登録</div><div class="symbol" style="font-size:38px;color:#fff">'+escapeHtml(cand || "未登録")+'</div><div class="meta">型番をそのまま追加できます</div></div><div class="ruleBox" style="color:#fff"><div class="ruleKey">白</div><div class="ruleName">その他</div></div>';
   setStatus("未登録：" + cand);
 }
 
 function addCurrent() {
-  if(!current) return alert("先に読取してください");
+  if(!current) {
+    alert("先に読取してください");
+    return;
+  }
   const d = new Date();
   const date = d.toISOString().slice(0,10).replaceAll("-","/");
   const time = d.toTimeString().slice(0,5);
@@ -303,7 +361,7 @@ function toggleLock(index) {
 }
 
 function renderChecklist() {
-  const target = document.getElementById("checkList");
+  const target = el("checkList");
   let groups = {};
   checklist.forEach((x,i) => {
     x._i = i;
@@ -318,11 +376,17 @@ function renderChecklist() {
     arr.forEach(x => {
       const rule = ruleFor(x.symbol);
       const symbolHtml = x.missing ? '<span class="tiger">'+escapeHtml(x.symbol)+'</span>' : '<span class="itemSymbol" style="color:'+rule.color+'">'+escapeHtml(x.symbol)+'</span>';
-      html += '<div class="item"><div>'+symbolHtml+'</div><div class="itemRule" style="color:'+rule.color+'">'+escapeHtml(rule.name)+'</div><div class="qtyGrid"><button class="qbtn minus" onclick="changeQty('+x._i+',-10)">-10</button><button class="qbtn minus" onclick="changeQty('+x._i+',-1)">-1</button><div class="qtyNum">'+x.qty+'</div><button class="qbtn plus" onclick="changeQty('+x._i+',1)">+1</button><button class="qbtn plus" onclick="changeQty('+x._i+',10)">+10</button></div><div><button class="lockBtn '+(x.locked?'locked':'')+'" onclick="toggleLock('+x._i+')">🔒</button></div></div>';
+      html += '<div class="item"><div>'+symbolHtml+'</div><div class="itemRule" style="color:'+rule.color+'">'+escapeHtml(rule.name)+'</div><div class="qtyGrid"><button class="qbtn minus" data-i="'+x._i+'" data-d="-10">-10</button><button class="qbtn minus" data-i="'+x._i+'" data-d="-1">-1</button><div class="qtyNum">'+x.qty+'</div><button class="qbtn plus" data-i="'+x._i+'" data-d="1">+1</button><button class="qbtn plus" data-i="'+x._i+'" data-d="10">+10</button></div><div><button class="lockBtn '+(x.locked?'locked':'')+'" data-lock="'+x._i+'">🔒</button></div></div>';
     });
     html += '</div>';
   });
   target.innerHTML = html;
+  target.querySelectorAll("[data-i]").forEach(btn => {
+    btn.addEventListener("click", () => changeQty(Number(btn.dataset.i), Number(btn.dataset.d)));
+  });
+  target.querySelectorAll("[data-lock]").forEach(btn => {
+    btn.addEventListener("click", () => toggleLock(Number(btn.dataset.lock)));
+  });
 }
 
 function exportCsv() {
@@ -346,6 +410,7 @@ function loadCsv(e) {
     if(rows.length) {
       data = rows;
       alert(rows.length + "件読み込みました");
+      setStatus("CSV読込：" + rows.length + "件");
     } else {
       alert("CSV読込失敗");
     }
@@ -382,8 +447,6 @@ function splitCsv(line) {
   out.push(cur);
   return out;
 }
-
-function setStatus(s) { document.getElementById("status").textContent = s; }
 
 function escapeHtml(s) {
   return String(s || "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
