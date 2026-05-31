@@ -46,6 +46,8 @@ button,label.fileLabel{border:0;border-radius:12px;padding:14px 8px;color:#fff;f
 .lockBtn{font-size:22px;padding:8px;background:#111;border:1px solid #555}.locked{color:#ffd400;border-color:#ffd400}
 input[type=file]{display:none}
 .tiger{background:repeating-linear-gradient(135deg,#ffd400 0 12px,#000 12px 24px);color:#000;text-shadow:0 1px 0 #fff;border-radius:8px;padding:5px 6px;font-weight:1000;display:inline-block}
+.small{font-size:13px;color:#ccc;margin-top:6px}
+.raw{white-space:pre-wrap;background:#080808;border-radius:10px;padding:8px;font-size:12px;color:#bbb;max-height:85px;overflow:auto;margin-top:8px}
 canvas{display:none}
 </style>
 </head>
@@ -90,6 +92,8 @@ canvas{display:none}
   <button id="btnExport" class="blue">⬇ CSV書き出し</button>
   <input id="csvInput" type="file" accept=".csv,text/csv">
 </div>
+<div class="small" id="csvInfo">初期データ：33件</div>
+<div class="raw" id="rawBox">読取文字：未読取</div>
 </div>
 <canvas id="work"></canvas>
 
@@ -137,9 +141,38 @@ function normalize(s) {
   return (s || "").toUpperCase()
     .replace(/[ＯO]/g,"0")
     .replace(/[ＩIＬ]/g,"1")
+    .replace(/[Ｓ]/g,"5")
+    .replace(/[Ｂ]/g,"8")
     .replace(/[　\s_.,:;|/\\()[\]{}]+/g,"")
     .replace(/[^A-Z0-9\-]/g,"")
     .trim();
+}
+
+function looksLikeModel(s) {
+  const x = normalize(s);
+  if(x.length < 5 || x.length > 24) return false;
+  return /^(NNFB|NNLG|FA|FW|FSK|FK|LGB|XL|XND|NW|NDN)[A-Z0-9\-]{3,}/.test(x);
+}
+
+function extractModelCandidates(text) {
+  const joined = normalize(text);
+  let arr = [];
+  const patterns = [
+    /NNFB\d{5}[A-Z]*/g,
+    /NNLG\d{5}[A-Z]*/g,
+    /FSK\d{5}[A-Z]*/g,
+    /FA\d{5}[A-Z]*/g,
+    /FW\d{5}[A-Z]*/g,
+    /LGB\d{3,6}[A-Z]*/g,
+    /XND\d{3,6}[A-Z]*/g
+  ];
+  for(const p of patterns) {
+    const m = joined.match(p);
+    if(m) arr.push(...m);
+  }
+  const words = joined.match(/[A-Z]{2,}[A-Z0-9\-]{3,}/g) || [];
+  arr.push(...words.filter(looksLikeModel));
+  return [...new Set(arr)];
 }
 
 function lastAlpha(s) {
@@ -169,23 +202,28 @@ function similarity(a,b) {
 }
 
 function matchModel(text) {
+  let candidates = extractModelCandidates(text);
   let joined = normalize(text);
+
   for (const r of data) {
     let m = normalize(r.model);
-    if(joined.includes(m) || m.includes(joined)) return {hit:r,cand:r.model,score:1};
+    if(joined.includes(m)) return {hit:r,cand:r.model,score:1};
   }
-  let best = {hit:null,cand:joined,score:0};
-  let chunks = [joined, ...(joined.match(/[A-Z]{1,}[A-Z0-9\-]{4,}/g) || [])];
+
+  let best = {hit:null,cand:candidates[0] || "",score:0};
   for (const r of data) {
-    let m = normalize(r.model);
-    for (const c of chunks) {
-      if(c.length < 5) continue;
-      let s = similarity(c,m);
+    let model = normalize(r.model);
+    for (const c of candidates) {
+      let s = similarity(c, model);
       if(s > best.score) best = {hit:r,cand:c,score:s};
     }
   }
+
   if(best.score >= 0.72) return best;
-  return {hit:null,cand:joined,score:best.score};
+
+  // 型番らしい候補だけ未登録表示。それ以外の長文OCRは無視。
+  if(candidates.length) return {hit:null,cand:candidates[0],score:best.score};
+  return {hit:null,cand:"",score:0};
 }
 
 async function ensureWorker() {
@@ -300,14 +338,24 @@ async function readOnce() {
     const r = await w.recognize(c);
     if(isStopped) return;
     const text = r.data.text || "";
+    el("rawBox").textContent = "読取文字：\n" + text;
     const m = matchModel(text);
     if(m.hit) showHit(m.hit, m.score);
-    else showMissing(m.cand, m.score);
+    else if(m.cand) showMissing(m.cand, m.score);
+    else showWaiting("型番が見つかりません", "型番だけを十字の中心に合わせてください");
   } catch(e) {
     setStatus("読取エラー：" + e.message);
   } finally {
     busy = false;
   }
+}
+
+function showWaiting(title, msg) {
+  current = null;
+  const box = el("resultBox");
+  box.style.borderColor = "#24394f";
+  box.innerHTML = '<div><div class="state">'+escapeHtml(title)+'</div><div class="symbol" style="color:#fff">---</div><div class="meta">'+escapeHtml(msg)+'</div></div><div class="ruleBox" style="color:#fff"><div class="ruleKey">白</div><div class="ruleName">その他</div></div>';
+  setStatus(title);
 }
 
 function showHit(hit, score) {
@@ -325,12 +373,12 @@ function showMissing(cand, score) {
   const box = el("resultBox");
   box.style.borderColor = "#fff";
   box.innerHTML = '<div><div class="state">未登録</div><div class="symbol" style="font-size:38px;color:#fff">'+escapeHtml(short)+'</div><div class="meta">型番をそのまま追加できます</div></div><div class="ruleBox" style="color:#fff"><div class="ruleKey">白</div><div class="ruleName">その他</div></div>';
-  setStatus("未登録");
+  setStatus("未登録：" + short);
 }
 
 function addCurrent() {
   if(!current) {
-    alert("先に読取してください");
+    alert("先に型番を読取してください");
     return;
   }
   const d = new Date();
@@ -402,10 +450,11 @@ function loadCsv(e) {
     const rows = parseCsv(r.result);
     if(rows.length) {
       data = rows;
+      el("csvInfo").textContent = "読込済み：" + f.name + " / " + rows.length + "件";
       alert(rows.length + "件読み込みました");
       setStatus("CSV読込：" + rows.length + "件");
     } else {
-      alert("CSV読込失敗");
+      alert("CSV読込失敗：型番 と 照会記号/紹介記号 の列が必要です");
     }
   };
   r.readAsText(f, "utf-8");
