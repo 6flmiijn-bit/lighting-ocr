@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>高速OCR 照明器具紹介記号チェッカー</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <style>
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f3f3f3;color:#111}
+    header{padding:14px 16px;background:#111;color:white;position:sticky;top:0;z-index:5}
+    header h1{font-size:17px;margin:0}
+    main{padding:12px;max-width:760px;margin:auto}
+    .card{background:white;border-radius:16px;padding:14px;margin:12px 0;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+    .small{font-size:13px;color:#666;line-height:1.55}
+    button{width:100%;border:0;border-radius:12px;padding:13px;margin-top:10px;background:#0b72ff;color:white;font-weight:800;font-size:16px}
+    button.gray{background:#666}
+    button.black{background:#111}
+    button.red{background:#c62828}
+    input{font:inherit}
+    input[type=text]{width:100%;box-sizing:border-box;padding:13px;border:1px solid #ddd;border-radius:12px;font-size:18px}
+    video,canvas{width:100%;border-radius:16px;background:#000;margin-top:10px}
+    canvas{display:none}
+    .cameraBox{position:relative}
+    #video{display:none}
+    #guide{display:none;position:absolute;left:6%;right:6%;top:34%;height:22%;border:3px solid #00ff7b;border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,.28);pointer-events:none}
+    #guideText{display:none;position:absolute;left:7%;right:7%;top:29%;color:white;font-weight:800;text-shadow:0 2px 5px black;text-align:center}
+    .result{position:sticky;top:53px;z-index:4;text-align:center;background:#eef5ff;border:2px solid #d6e8ff}
+    .symbol{font-size:72px;font-weight:950;line-height:1.0}
+    .ok{color:#008a3d;font-weight:800}
+    .ng{color:#c62828;font-weight:800}
+    .warn{color:#b26a00;font-weight:800}
+    .raw{white-space:pre-wrap;background:#f2f2f2;border-radius:12px;padding:10px;max-height:150px;overflow:auto;font-size:13px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{border-bottom:1px solid #eee;padding:7px 4px;text-align:left}
+    .pill{display:inline-block;background:#eee;padding:4px 8px;border-radius:999px;margin:2px;font-size:12px}
+    .meter{height:8px;background:#ddd;border-radius:99px;overflow:hidden;margin-top:8px}
+    #bar{height:100%;width:0;background:#0b72ff}
+    @media(max-width:520px){.row{grid-template-columns:1fr}.symbol{font-size:64px}}
+  </style>
+</head>
+<body>
+<header><h1>高速OCR 照明器具紹介記号チェッカー</h1></header>
+<main>
+  <section class="card result" id="resultBox">
+    <div class="small">検索結果</div>
+    <div class="symbol">---</div>
+    <div class="small">カメラを起動してください</div>
+  </section>
+
+  <section class="card">
+    <b>高速リアルタイム読取</b>
+    <div class="small">
+      改善点：型番部分だけ切り出し／白黒補正／OCR文字制限／辞書照合／連続3回一致で確定。<br>
+      枠内に型番だけを大きく入れてください。
+    </div>
+    <button onclick="startCamera()">カメラ起動</button>
+    <div class="row">
+      <button class="black" onclick="toggleRealtime()">リアルタイム開始/停止</button>
+      <button class="gray" onclick="captureOnce()">1回だけ読取</button>
+    </div>
+    <button class="red" onclick="stopCamera()">カメラ停止</button>
+    <div class="cameraBox">
+      <video id="video" playsinline muted></video>
+      <div id="guideText">型番だけをこの枠に入れる</div>
+      <div id="guide"></div>
+    </div>
+    <canvas id="workCanvas"></canvas>
+    <canvas id="previewCanvas"></canvas>
+    <div class="meter"><div id="bar"></div></div>
+    <div id="status" class="small">待機中</div>
+  </section>
+
+  <section class="card">
+    <b>手入力確認</b>
+    <input id="modelInput" type="text" placeholder="例：NNFB84665">
+    <button onclick="manualSearch()">検索</button>
+  </section>
+
+  <section class="card">
+    <b>写真から読取</b>
+    <input type="file" accept="image/*" onchange="loadImageOCR(event)">
+  </section>
+
+  <section class="card">
+    <b>読取文字・候補</b>
+    <div id="ocrText" class="raw">未読取</div>
+  </section>
+
+  <section class="card">
+    <b>CSVデータ読込</b>
+    <div class="small">列名：型番, 紹介記号, 設置場所, 回路, 備考</div>
+    <input type="file" accept=".csv,text/csv" onchange="loadCsvFile(event)">
+  </section>
+
+  <section class="card">
+    <b>登録データ</b>
+    <div id="count" class="small"></div>
+    <div id="table"></div>
+  </section>
+</main>
+
+<script>
+let data = [
+  {model:"NNFB84665", symbol:"A1", place:"", circuit:"", note:"追加登録"},
+  {model:"NNFB84695", symbol:"A2", place:"", circuit:"", note:"追加登録"},
+  {model:"XLX450NENP LE9", symbol:"A-12", place:"3F 廊下", circuit:"L-3", note:"昼白色・非調光"}
+];
+
+let stream=null;
+let worker=null;
+let realtime=false;
+let busy=false;
+let timer=null;
+let lastHit="";
+let stableCount=0;
+
+const OCR_INTERVAL_MS = 1200;      // 速さ優先。重い端末なら1500〜2000に変更
+const TARGET_WIDTH = 900;          // 小さくしてOCR高速化
+const REQUIRED_STABLE = 2;         // 2回連続一致で確定。誤読が多ければ3
+
+function normalize(s){
+  return (s||"")
+    .toUpperCase()
+    .replace(/[ＯO]/g,"0")
+    .replace(/[ＩIＬ]/g,"1")
+    .replace(/[Ｓ]/g,"5")
+    .replace(/[Ｂ]/g,"8")
+    .replace(/[　\s_.,:;|/\\()[\]{}]+/g,"")
+    .replace(/[^A-Z0-9\-]/g,"")
+    .trim();
+}
+
+function similarity(a,b){
+  a=normalize(a); b=normalize(b);
+  const m=a.length, n=b.length;
+  if(!m || !n) return 0;
+  const dp=Array.from({length:m+1},()=>Array(n+1).fill(0));
+  for(let i=0;i<=m;i++) dp[i][0]=i;
+  for(let j=0;j<=n;j++) dp[0][j]=j;
+  for(let i=1;i<=m;i++){
+    for(let j=1;j<=n;j++){
+      const cost=a[i-1]===b[j-1]?0:1;
+      dp[i][j]=Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+cost);
+    }
+  }
+  return 1 - dp[m][n] / Math.max(m,n);
+}
+
+function bestMatch(text){
+  const joined = normalize(text);
+  if(!joined) return {hit:null, candidate:"", score:0};
+
+  // 完全一致・含む一致を最優先
+  for(const row of data){
+    const m=normalize(row.model);
+    if(joined.includes(m) || m.includes(joined)){
+      return {hit:row, candidate:row.model, score:1};
+    }
+  }
+
+  // OCRが一部だけ読めた時の辞書照合
+  let best={hit:null, candidate:joined, score:0};
+  const chunks = [joined];
+  const found = joined.match(/[A-Z]{1,}[A-Z0-9\-]{3,}/g) || [];
+  chunks.push(...found);
+
+  for(const row of data){
+    const m=normalize(row.model);
+    for(const c of chunks){
+      if(c.length < 5) continue;
+      const score = similarity(c,m);
+      if(score > best.score) best={hit:row, candidate:c, score};
+    }
+  }
+
+  // 0.72以上なら候補扱い。型番が似ている場合は0.80以上推奨
+  if(best.score >= 0.72) return best;
+  return {hit:null, candidate:joined, score:best.score};
+}
+
+async function ensureWorker(){
+  if(worker) return worker;
+  setStatus("OCRエンジン準備中... 初回だけ時間がかかります", 10);
+  worker = await Tesseract.createWorker("eng", 1, {
+    logger: m => {
+      if(m.status === "recognizing text"){
+        setStatus("OCR中 " + Math.round((m.progress||0)*100) + "%", 35 + Math.round((m.progress||0)*55));
+      }
+    }
+  });
+  await worker.setParameters({
+    tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789- ",
+    tessedit_pageseg_mode: "7", // 1行の型番想定
+    preserve_interword_spaces: "0"
+  });
+  setStatus("OCR準備完了", 100);
+  return worker;
+}
+
+async function startCamera(){
+  const video=document.getElementById("video");
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{
+        facingMode:{ideal:"environment"},
+        width:{ideal:1280},
+        height:{ideal:720},
+        focusMode:"continuous"
+      },
+      audio:false
+    });
+    video.srcObject=stream;
+    video.style.display="block";
+    document.getElementById("guide").style.display="block";
+    document.getElementById("guideText").style.display="block";
+    await video.play();
+    await ensureWorker();
+    setStatus("カメラ起動。型番を枠内に入れてください", 0);
+  }catch(e){
+    alert("カメラを起動できませんでした。HTTPSのURLで開いているか、カメラ許可を確認してください。");
+  }
+}
+
+function stopCamera(){
+  realtime=false;
+  if(timer) clearInterval(timer);
+  timer=null;
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  const video=document.getElementById("video");
+  video.pause(); video.srcObject=null; video.style.display="none";
+  document.getElementById("guide").style.display="none";
+  document.getElementById("guideText").style.display="none";
+  setStatus("停止中",0);
+}
+
+function toggleRealtime(){
+  if(!stream){ alert("先にカメラを起動してください。"); return; }
+  realtime=!realtime;
+  if(realtime){
+    setStatus("リアルタイム読取中",0);
+    timer=setInterval(()=>captureOnce(true), OCR_INTERVAL_MS);
+    captureOnce(true);
+  }else{
+    if(timer) clearInterval(timer);
+    timer=null;
+    setStatus("リアルタイム停止",0);
+  }
+}
+
+function cropAndPreprocessFromVideo(){
+  const video=document.getElementById("video");
+  if(!video.videoWidth) return null;
+  const srcW=video.videoWidth, srcH=video.videoHeight;
+
+  // 画面中央の型番枠だけ使う
+  const sx=Math.floor(srcW*0.08);
+  const sy=Math.floor(srcH*0.34);
+  const sw=Math.floor(srcW*0.84);
+  const sh=Math.floor(srcH*0.22);
+
+  const scale = TARGET_WIDTH / sw;
+  const outW = TARGET_WIDTH;
+  const outH = Math.max(120, Math.floor(sh*scale));
+
+  const canvas=document.getElementById("workCanvas");
+  canvas.width=outW; canvas.height=outH;
+  const ctx=canvas.getContext("2d", {willReadFrequently:true});
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, outW, outH);
+
+  preprocessCanvas(canvas);
+  showPreview(canvas);
+  return canvas;
+}
+
+function preprocessCanvas(canvas){
+  const ctx=canvas.getContext("2d", {willReadFrequently:true});
+  const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+  const d=img.data;
+
+  // grayscale + contrast + threshold
+  let sum=0;
+  for(let i=0;i<d.length;i+=4){
+    let g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+    g = (g - 128) * 1.65 + 128; // contrast
+    g = Math.max(0, Math.min(255, g));
+    sum += g;
+    d[i]=d[i+1]=d[i+2]=g;
+  }
+  const avg=sum/(d.length/4);
+  const threshold = Math.max(100, Math.min(180, avg*0.92));
+  for(let i=0;i<d.length;i+=4){
+    const v=d[i] > threshold ? 255 : 0;
+    d[i]=d[i+1]=d[i+2]=v;
+  }
+  ctx.putImageData(img,0,0);
+}
+
+function showPreview(source){
+  const p=document.getElementById("previewCanvas");
+  p.width=source.width; p.height=source.height;
+  p.getContext("2d").drawImage(source,0,0);
+  p.style.display="block";
+}
+
+async function captureOnce(isAuto=false){
+  if(busy) return;
+  if(!stream){ alert("先にカメラを起動してください。"); return; }
+  busy=true;
+  try{
+    const canvas=cropAndPreprocessFromVideo();
+    if(!canvas){ busy=false; return; }
+    await runOCR(canvas, isAuto);
+  }finally{
+    busy=false;
+  }
+}
+
+async function runOCR(source, isAuto=false){
+  const w=await ensureWorker();
+  setStatus("OCR中...", 35);
+  const ret = await w.recognize(source);
+  const text = ret.data.text || "";
+  const match = bestMatch(text);
+  document.getElementById("ocrText").textContent =
+    "OCR文字:\n" + (text || "なし") +
+    "\n\n補正候補: " + (match.candidate || "-") +
+    "\n一致率: " + Math.round(match.score*100) + "%";
+
+  if(match.hit){
+    const id = normalize(match.hit.model);
+    if(id === lastHit) stableCount++; else { lastHit=id; stableCount=1; }
+
+    if(stableCount >= REQUIRED_STABLE || !isAuto){
+      showResult(match.hit, match.candidate, match.score, true);
+      setStatus("確定：" + match.hit.model + " → " + match.hit.symbol, 100);
+      if(navigator.vibrate) navigator.vibrate(70);
+    }else{
+      showCandidate(match.hit, match.candidate, match.score, stableCount);
+      setStatus("候補確認中 " + stableCount + "/" + REQUIRED_STABLE, 75);
+    }
+  }else{
+    stableCount=0; lastHit="";
+    if(!isAuto) showResult(null, match.candidate, match.score, false);
+    setStatus("未検出。型番を枠いっぱいに大きく写してください", 15);
+  }
+}
+
+function showCandidate(hit, candidate, score, count){
+  document.getElementById("resultBox").innerHTML = `
+    <div class="small warn">候補 ${count}/${REQUIRED_STABLE}</div>
+    <div class="symbol">${escapeHtml(hit.symbol)}</div>
+    <div class="small">型番候補：${escapeHtml(hit.model)} / 一致率 ${Math.round(score*100)}%</div>
+  `;
+}
+
+function showResult(hit, input, score=0, ok=false){
+  const box=document.getElementById("resultBox");
+  if(hit){
+    box.innerHTML = `
+      <div class="small ok">一致しました</div>
+      <div class="symbol">${escapeHtml(hit.symbol)}</div>
+      <div class="small">型番：${escapeHtml(hit.model)}</div>
+      <div class="small">一致率：${Math.round(score*100)}%</div>
+      <div class="small">設置場所：${escapeHtml(hit.place||"-")} / 回路：${escapeHtml(hit.circuit||"-")}</div>
+    `;
+  }else{
+    box.innerHTML = `
+      <div class="small ng">未登録または読取失敗</div>
+      <div class="symbol">---</div>
+      <div class="small">候補：${escapeHtml(input||"-")} / 一致率 ${Math.round(score*100)}%</div>
+    `;
+  }
+}
+
+function manualSearch(){
+  const input=document.getElementById("modelInput").value;
+  const m=bestMatch(input);
+  showResult(m.hit, m.candidate, m.score);
+}
+
+async function loadImageOCR(event){
+  const file=event.target.files[0];
+  if(!file) return;
+  const img=new Image();
+  img.onload=async()=>{
+    const canvas=document.getElementById("workCanvas");
+    const maxW=TARGET_WIDTH;
+    const scale=Math.min(1, maxW/img.width);
+    canvas.width=Math.floor(img.width*scale);
+    canvas.height=Math.floor(img.height*scale);
+    const ctx=canvas.getContext("2d");
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    preprocessCanvas(canvas);
+    showPreview(canvas);
+    await runOCR(canvas,false);
+  };
+  img.src=URL.createObjectURL(file);
+}
+
+function setStatus(text, pct){
+  document.getElementById("status").textContent=text;
+  document.getElementById("bar").style.width=(pct||0)+"%";
+}
+
+function parseCsv(text){
+  const lines=text.replace(/\r/g,"").split("\n").filter(x=>x.trim());
+  if(lines.length<2) return [];
+  const headers=splitCsvLine(lines[0]).map(h=>h.trim());
+  return lines.slice(1).map(line=>{
+    const cells=splitCsvLine(line); const row={};
+    headers.forEach((h,i)=>row[h]=cells[i]||"");
+    return {
+      model: row["型番"]||row["model"]||row["器具型番"]||"",
+      symbol: row["紹介記号"]||row["symbol"]||row["記号"]||"",
+      place: row["設置場所"]||row["place"]||"",
+      circuit: row["回路"]||row["circuit"]||"",
+      note: row["備考"]||row["note"]||""
+    };
+  }).filter(r=>r.model&&r.symbol);
+}
+
+function splitCsvLine(line){
+  const out=[]; let cur=""; let q=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i], n=line[i+1];
+    if(c=='"'&&q&&n=='"'){cur+='"';i++;}
+    else if(c=='"'){q=!q;}
+    else if(c==","&&!q){out.push(cur);cur="";}
+    else cur+=c;
+  }
+  out.push(cur); return out;
+}
+
+function loadCsvFile(event){
+  const file=event.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const rows=parseCsv(reader.result);
+    if(rows.length){ data=rows; renderTable(); alert(rows.length+"件読み込みました"); }
+    else alert("CSVを読み込めませんでした。列名を確認してください。");
+  };
+  reader.readAsText(file,"utf-8");
+}
+
+function renderTable(){
+  document.getElementById("count").textContent=data.length+"件登録中";
+  document.getElementById("table").innerHTML=`
+    <table><thead><tr><th>型番</th><th>紹介記号</th><th>場所</th></tr></thead>
+    <tbody>${data.map(r=>`<tr><td>${escapeHtml(r.model)}</td><td><b>${escapeHtml(r.symbol)}</b></td><td>${escapeHtml(r.place||"")}</td></tr>`).join("")}</tbody></table>`;
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+renderTable();
+</script>
+</body>
+</html>
