@@ -1,6 +1,6 @@
 {
-  "name": "lighting-symbol-auto-wide",
-  "version": "1.2.0",
+  "name": "lighting-ocr-checklist-rule-editor",
+  "version": "1.5.0",
   "private": true,
   "scripts": {
     "build": "mkdir -p dist && cp index.html dist/index.html && cp sample_data.csv dist/sample_data.csv",
