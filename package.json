@@ -1,12 +1,11 @@
 {
-  "name": "lighting-symbol-fast-ocr",
-  "version": "1.1.0",
+  "name": "lighting-symbol-auto-wide",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
-    "start": "vite --host 0.0.0.0",
     "build": "mkdir -p dist && cp index.html dist/index.html && cp sample_data.csv dist/sample_data.csv",
-    "preview": "vite preview --host 0.0.0.0"
+    "dev": "vite --host 0.0.0.0",
+    "start": "vite --host 0.0.0.0"
   },
   "devDependencies": {
     "vite": "^5.0.0"

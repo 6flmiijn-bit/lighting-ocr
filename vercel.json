@@ -1,13 +1,1 @@
-{
-  "version": 2,
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Permissions-Policy", "value": "camera=(self)" }
-      ]
-    }
-  ]
-}
+{"version":2,"buildCommand":"npm run build","outputDirectory":"dist"}
