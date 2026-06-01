@@ -1,9 +1,11 @@
 {
-  "name": "lighting-ocr-csv-list-compare",
-  "version": "2.2.0",
+  "name": "lighting-symbol-auto-wide",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
-    "build": "mkdir -p dist && cp index.html dist/index.html && cp sample_data.csv dist/sample_data.csv"
+    "build": "mkdir -p dist && cp index.html dist/index.html && cp sample_data.csv dist/sample_data.csv",
+    "dev": "vite --host 0.0.0.0",
+    "start": "vite --host 0.0.0.0"
   },
   "devDependencies": {
     "vite": "^5.0.0"
